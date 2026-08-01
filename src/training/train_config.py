@@ -6,7 +6,7 @@ DEVICE = torch.device(
 )
 
 # Training Parameters
-NUM_EPOCHS = 15
+NUM_EPOCHS = 20
 
 BATCH_SIZE = 32
 
