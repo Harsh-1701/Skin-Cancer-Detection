@@ -30,3 +30,29 @@ IMAGE_SIZE = (224, 224)
 
 # Random Seed
 RANDOM_SEED = 42
+
+# Diagnosis Labels
+LABEL_MAP = {
+    "akiec": 0,
+    "bcc": 1,
+    "bkl": 2,
+    "df": 3,
+    "mel": 4,
+    "nv": 5,
+    "vasc": 6
+}
+
+IDX_TO_LABEL = {v: k for k, v in LABEL_MAP.items()}
+
+BENIGN_CLASSES = {
+    "nv",
+    "bkl",
+    "bcc",
+    "df",
+    "vasc"
+}
+
+MALIGNANT_CLASSES = {
+    "mel",
+    "akiec"
+}
