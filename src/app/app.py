@@ -1,3 +1,4 @@
+import cv2
 import sys
 from pathlib import Path
 
@@ -116,6 +117,42 @@ transform = transforms.Compose(
         transforms.ToTensor(),
     ]
 )
+
+def looks_like_dermoscopy(image):
+
+    img = np.array(image)
+
+    h, w = img.shape[:2]
+
+    if h < 150 or w < 150:
+        return False
+
+    gray = cv2.cvtColor(
+        img,
+        cv2.COLOR_RGB2GRAY,
+    )
+
+    std = np.std(gray)
+
+    if std < 20:
+        return False
+
+    hsv = cv2.cvtColor(
+        img,
+        cv2.COLOR_RGB2HSV,
+    )
+
+    skin_pixels = np.sum(
+
+        (hsv[:, :, 0] < 30)
+
+        & (hsv[:, :, 1] > 20)
+
+    )
+
+    ratio = skin_pixels / (h * w)
+
+    return ratio > 0.30
 
 # -------------------------------------------------------
 # SIDEBAR
@@ -284,6 +321,18 @@ elif selected == "Prediction":
 
         if predict:
 
+            if not looks_like_dermoscopy(image):
+
+                st.error(
+                    "❌ This does not appear to be a dermoscopic skin lesion image."
+                )
+
+                st.info(
+                    "Please upload a dermoscopic image from the HAM10000 style dataset."
+                )
+
+                st.stop()
+
             with torch.enable_grad():
 
                 output = model(
@@ -298,6 +347,12 @@ elif selected == "Prediction":
                 confidence, prediction = torch.max(
                     probabilities,
                     dim=1,
+                )
+
+                all_probabilities = (
+                    probabilities.squeeze()
+                    .cpu()
+                    .numpy()
                 )
 
             heatmap = gradcam.generate(
@@ -357,6 +412,64 @@ elif selected == "Prediction":
                     "Confidence",
                     f"{score*100:.2f}%"
                 )
+
+                if score >= 0.70:
+
+                    st.success(
+                        "🟢 High confidence prediction."
+                    )
+
+                elif score >= 0.50:
+
+                    st.warning(
+                        "🟡 Moderate confidence prediction. Clinical verification is recommended."
+                    )
+
+                else:
+
+                    st.error(
+                        "🔴 Low confidence prediction. Please upload a clear dermoscopic skin lesion image. This prediction should not be relied upon for diagnosis."
+                    )
+
+                st.markdown("### Class Probabilities")
+
+                probability_dict = {}
+
+                for i, prob in enumerate(all_probabilities):
+
+                    label = INDEX_TO_LABEL[i]
+
+                    probability_dict[
+                        DISEASE_NAMES[label]
+                    ] = prob
+
+                probability_dict = dict(
+
+                    sorted(
+
+                        probability_dict.items(),
+
+                        key=lambda x: x[1],
+
+                        reverse=True,
+
+                    )
+
+                )
+
+                for disease_name, prob in probability_dict.items():
+
+                    st.write(
+                        f"**{disease_name}**"
+                    )
+
+                    st.progress(
+                        float(prob)
+                    )
+
+                    st.caption(
+                        f"{prob*100:.2f}%"
+                    )
 
                 st.info(
                     DISEASE_DESCRIPTION[
