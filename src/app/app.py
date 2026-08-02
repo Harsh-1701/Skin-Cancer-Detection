@@ -33,6 +33,28 @@ st.set_page_config(
     initial_sidebar_state="expanded",
 )
 
+st.markdown(
+    """
+    <style>
+    div[data-testid="stMetricValue"]{
+        font-size:22px !important;
+     font-weight:600;
+    }
+
+    div[data-testid="stMetricLabel"]{
+        font-size:17px;
+    }
+
+    .block-container{
+        padding-top:1rem;
+        padding-bottom:1rem;
+    }
+
+    </style>
+    """,
+    unsafe_allow_html=True,
+)
+
 DEVICE = torch.device(
     "cuda" if torch.cuda.is_available() else "cpu"
 )
@@ -50,30 +72,22 @@ st.markdown(
 }
 
 .block-container{
-    padding-top:1rem;
+    padding-top:0.5rem;
+    padding-bottom:0rem;
 }
 
 .card{
     background:white;
-    padding:20px;
+    padding:18px;
     border-radius:15px;
     box-shadow:0px 0px 15px rgba(0,0,0,.08);
-}
-
-.big-font{
-    font-size:32px;
-    font-weight:bold;
-}
-
-.small-font{
-    color:gray;
 }
 
 div.stButton > button{
     width:100%;
     border-radius:12px;
     height:55px;
-    font-size:20px;
+    font-size:18px;
 }
 
 </style>
@@ -118,42 +132,6 @@ transform = transforms.Compose(
     ]
 )
 
-def looks_like_dermoscopy(image):
-
-    img = np.array(image)
-
-    h, w = img.shape[:2]
-
-    if h < 150 or w < 150:
-        return False
-
-    gray = cv2.cvtColor(
-        img,
-        cv2.COLOR_RGB2GRAY,
-    )
-
-    std = np.std(gray)
-
-    if std < 20:
-        return False
-
-    hsv = cv2.cvtColor(
-        img,
-        cv2.COLOR_RGB2HSV,
-    )
-
-    skin_pixels = np.sum(
-
-        (hsv[:, :, 0] < 30)
-
-        & (hsv[:, :, 1] > 20)
-
-    )
-
-    ratio = skin_pixels / (h * w)
-
-    return ratio > 0.30
-
 # -------------------------------------------------------
 # SIDEBAR
 # -------------------------------------------------------
@@ -183,38 +161,19 @@ with st.sidebar:
 
     st.divider()
 
-    st.markdown("### Model")
+    st.markdown("### Developed By")
 
-    st.success("EfficientNet-B0")
+    st.markdown("""
+    - Harsh Singh
+    - Ayush Raj
+    - Swetangi Ray
+    """)
 
-    st.markdown("### Validation Accuracy")
+    st.markdown("### Guide")
 
-    st.success("87.95 %")
-
-    st.markdown("### Dataset")
-
-    st.info("HAM10000")
-
-    st.markdown("### Classes")
-
-    st.info("7")
-
-    st.markdown("### Device")
-
-    if torch.cuda.is_available():
-        st.success("GPU")
-    else:
-        st.warning("CPU")
+    st.write("Dr. Amit Gangopadhyay")
 
     st.divider()
-
-    st.caption("Developed By")
-
-    st.write("Harsh")
-
-    st.write("Ayush")
-
-    st.write("Swetangi")
 
 # -------------------------------------------------------
 # DASHBOARD
@@ -223,13 +182,26 @@ with st.sidebar:
 if selected == "Dashboard":
 
     st.markdown(
-        "<div class='big-font'>🩺 AI Skin Cancer Detection System</div>",
+        """
+        <h1 style='font-size:46px; margin-bottom:0px;'>
+        🩺 Skin Cancer Detection System
+        </h1>
+        """,
         unsafe_allow_html=True,
     )
 
     st.markdown(
-        "<div class='small-font'>Deep Learning Based Skin Lesion Classification using EfficientNet-B0</div>",
-        unsafe_allow_html=True,
+    """
+    <div style="font-size:22px;
+    color:#bdbdbd;
+    margin-top:-10px;
+    margin-bottom:20px;">
+
+    Deep Learning Based Skin Lesion Classification using EfficientNet-B0
+
+    </div>
+    """,
+    unsafe_allow_html=True,
     )
 
     st.divider()
@@ -238,41 +210,79 @@ if selected == "Dashboard":
 
     with c1:
 
-        st.metric(
-            "Validation Accuracy",
-            "87.95%"
+        st.markdown(
+        """
+        ### 🎯 Accuracy
+
+        ## 87.95%
+        """
         )
 
     with c2:
 
-        st.metric(
-            "Classes",
-            "7"
+        st.markdown(
+            """
+            ### 📊 Classes
+
+            ## 7
+            """
         )
 
     with c3:
 
-        st.metric(
-            "Dataset",
-            "HAM10000"
+        st.markdown(
+            """
+            ### 🗂 Dataset
+
+            ## HAM10000
+            """
         )
 
     with c4:
 
-        st.metric(
-            "Architecture",
-            "EfficientNet-B0"
+        st.markdown(
+            """
+            ### 🧠 Model
+
+            ## EfficientNet-B0
+            """
         )
 
     st.divider()
 
     st.info(
-        """
-This application classifies dermoscopic skin lesion images into
-seven different disease categories using a deep learning model.
+    """
 
-Navigate to **Prediction** from the left menu to upload an image.
-"""
+    ✨ Features
+
+    • Automatic lesion classification
+    
+    • Grad-CAM visualization for explainable AI
+    
+    • Confidence score estimation
+    
+    • Downloadable PDF diagnostic report
+
+    """
+    )
+
+    st.markdown("---")
+
+    st.markdown(
+    """
+    <div style="
+    font-size:18px;
+    text-align:center;
+    color:gray;
+    margin-top:20px;">
+
+    Academic Major Project |
+    Electronics and Communication Engineering |
+    2026
+
+    </div>
+    """,
+    unsafe_allow_html=True,
     )
 
     # -------------------------------------------------------
@@ -310,7 +320,7 @@ elif selected == "Prediction":
 
             st.image(
                 image,
-                caption="Uploaded Image",
+                caption="Input Skin Lesion Image",
                 use_container_width=True,
             )
 
@@ -320,18 +330,6 @@ elif selected == "Prediction":
             )
 
         if predict:
-
-            if not looks_like_dermoscopy(image):
-
-                st.error(
-                    "❌ This does not appear to be a dermoscopic skin lesion image."
-                )
-
-                st.info(
-                    "Please upload a dermoscopic image from the HAM10000 style dataset."
-                )
-
-                st.stop()
 
             with torch.enable_grad():
 
@@ -351,6 +349,7 @@ elif selected == "Prediction":
 
                 all_probabilities = (
                     probabilities.squeeze()
+                    .detach()
                     .cpu()
                     .numpy()
                 )
@@ -374,43 +373,78 @@ elif selected == "Prediction":
             ]
 
             score = confidence.item()
+            confidence_percent = score * 100
+
+            if confidence_percent >= 90:
+                confidence_color = "🟢"
+
+            elif confidence_percent >= 70:
+                confidence_color = "🟡"
+
+            else:
+                confidence_color = "🔴"
+
+             # Reject only when the model is very uncertain
+            if score < 0.45:
+
+                st.warning(
+                    """
+            ⚠️ Low confidence prediction.
+
+            The uploaded image may not be a skin lesion or may be outside the model's training data.
+
+            Please upload a clear dermoscopic or clinical skin lesion image.
+            """
+                )
+
+                st.stop()
 
             with middle:
 
                 st.image(
                     heatmap,
-                    caption="Grad-CAM",
+                    caption="Grad-CAM Attention Map",
                     use_container_width=True,
                 )
 
             with right:
 
-                st.subheader(
-                    "Prediction Report"
-                )
+                st.markdown("## 📋 Prediction Report")
 
-                st.metric(
-                    "Disease",
-                    DISEASE_NAMES[disease],
+                st.markdown("---")
+
+                st.markdown("### 🦠 Disease")
+
+                st.markdown(
+                    f"## {DISEASE_NAMES[disease]}"
                 )
 
                 if CLASS_INFO[disease] == "Benign":
 
-                    st.success(
-                        "🟢 Benign"
-                    )
+                    st.success("🟢 Benign Lesion")
 
                 else:
 
-                    st.error(
-                        "🔴 Malignant"
-                    )
+                    st.error("🔴 Malignant Lesion")
+
+                st.markdown("### 🎯 Confidence")
 
                 st.progress(score)
 
+                confidence_percent = score * 100
+
+                if confidence_percent >= 90:
+                    icon = "🟢"
+
+                elif confidence_percent >= 70:
+                    icon = "🟡"
+
+                else:
+                    icon = "🔴"
+
                 st.metric(
-                    "Confidence",
-                    f"{score*100:.2f}%"
+                    "",
+                    f"{icon} {confidence_percent:.2f}%"
                 )
 
                 if score >= 0.70:
@@ -428,10 +462,10 @@ elif selected == "Prediction":
                 else:
 
                     st.error(
-                        "🔴 Low confidence prediction. Please upload a clear dermoscopic skin lesion image. This prediction should not be relied upon for diagnosis."
+                        "🔴 Low confidence prediction. Clinical verification is recommended."
                     )
 
-                st.markdown("### Class Probabilities")
+                st.markdown("### 📊 Class Probabilities")
 
                 probability_dict = {}
 
@@ -502,7 +536,7 @@ elif selected == "Prediction":
 
                     st.download_button(
 
-                        "📄 Download PDF Report",
+                        label="📄 Download Diagnostic Report (PDF)",
 
                         data=pdf,
 
@@ -525,27 +559,75 @@ elif selected == "Evaluation":
     c1, c2, c3, c4 = st.columns(4)
 
     with c1:
-        st.metric(
-            "Accuracy",
-            "87.95%"
+        st.markdown(
+        """
+        <h3 style="font-size:28px;">
+        🎯 Accuracy
+        </h3>
+        """,
+        unsafe_allow_html=True,
+        )
+        st.markdown(
+        """
+        <h2 style="font-size:34px;margin-top:0;">
+        87.95%
+        </h2>
+        """,
+        unsafe_allow_html=True,
         )
 
     with c2:
-        st.metric(
-            "Precision",
-            "87.98%"
+        st.markdown(
+        """
+        <h3 style="font-size:28px;">
+        📊 Classes
+        </h3>
+        """,
+        unsafe_allow_html=True,
+        )
+        st.markdown(
+        """
+        <h2 style="font-size:34px;margin-top:0;">
+        7
+        </h2>
+        """,
+        unsafe_allow_html=True,
         )
 
     with c3:
-        st.metric(
-            "Recall",
-            "87.95%"
+        st.markdown(
+        """
+        <h3 style="font-size:28px;">
+        📁 Dataset
+        </h3>
+        """,
+        unsafe_allow_html=True,
+        )
+        st.markdown(
+        """
+        <h2 style="font-size:34px;margin-top:0;">
+        HAM10000
+        </h2>
+        """,
+        unsafe_allow_html=True,
         )
 
     with c4:
-        st.metric(
-            "F1 Score",
-            "87.92%"
+        st.markdown(
+        """
+        <h3 style="font-size:28px;">
+        🧠 Model
+        </h3>
+        """,
+        unsafe_allow_html=True,
+        )
+        st.markdown(
+        """
+        <h2 style="font-size:34px;margin-top:0;">
+        EfficientNet-B0
+        </h2>
+        """,
+        unsafe_allow_html=True,
         )
 
     st.divider()
@@ -579,31 +661,25 @@ elif selected == "Evaluation":
 
 elif selected == "About":
 
-    st.title("ℹ About Project")
+    st.title("About Project")
 
     st.markdown("""
 ### AI Skin Cancer Detection System
 
-This project classifies dermoscopic skin lesion images using
-EfficientNet-B0 with Transfer Learning.
+This project classifies dermoscopic skin lesion images using EfficientNet-B0 with Transfer Learning.
 
-### Dataset
+---
 
-HAM10000
+### 📊 Project Information
 
-### Model
+- **Dataset:** HAM10000
+- **Model:** EfficientNet-B0
+- **Classes:** 7
+- **Validation Accuracy:** 87.95%
 
-EfficientNet-B0
+---
 
-### Number of Classes
-
-7
-
-### Validation Accuracy
-
-87.95%
-
-### Technologies
+### 🛠 Technologies
 
 - Python
 - PyTorch
@@ -612,13 +688,19 @@ EfficientNet-B0
 - Grad-CAM
 - ReportLab
 
-### Developers
+---
 
-- Harsh
-- Ayush
-- Swetangi
+### 👨‍💻 Developed By
 
-### Guide
+- Harsh Singh (1MV23EC050)
+- Ayush Raj (1MV23EC029)
+- Swetangi Ray (1MV23EC115)
 
-Department of Computer Engineering
+---
+
+### 👨‍🏫 Guide
+
+- Dr. Amit Gangopadhyay
+
+Department of Electronics & Communication Engineering
 """)
