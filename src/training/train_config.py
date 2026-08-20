@@ -1,11 +1,21 @@
 import torch
 
-# Device
+
+# ---------------------------------------------------
+# DEVICE
+# ---------------------------------------------------
+
 DEVICE = torch.device(
-    "cuda" if torch.cuda.is_available() else "cpu"
+    "cuda"
+    if torch.cuda.is_available()
+    else "cpu"
 )
 
-# Training Parameters
+
+# ---------------------------------------------------
+# TRAINING PARAMETERS
+# ---------------------------------------------------
+
 NUM_EPOCHS = 20
 
 BATCH_SIZE = 32
@@ -14,8 +24,18 @@ LEARNING_RATE = 1e-4
 
 WEIGHT_DECAY = 1e-4
 
-NUM_CLASSES = 7
+
+# ---------------------------------------------------
+# V2 CLASS CONFIGURATION
+# ---------------------------------------------------
+
+NUM_CLASSES = 9
 
 MODEL_NAME = "efficientnet_b0"
+
+
+# ---------------------------------------------------
+# RANDOM SEED
+# ---------------------------------------------------
 
 RANDOM_SEED = 42

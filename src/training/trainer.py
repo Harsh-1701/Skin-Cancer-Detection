@@ -3,78 +3,199 @@ import torch
 
 class Trainer:
 
-    def __init__(self, model, optimizer, criterion, device):
+    def __init__(
+        self,
+        model,
+        optimizer,
+        criterion,
+        device,
+    ):
 
         self.model = model.to(device)
+
         self.optimizer = optimizer
+
         self.criterion = criterion
+
         self.device = device
 
-    def train_one_epoch(self, dataloader):
+
+    # ---------------------------------------------------
+    # TRAIN ONE EPOCH
+    # ---------------------------------------------------
+
+    def train_one_epoch(
+        self,
+        dataloader
+    ):
 
         self.model.train()
 
-        running_loss = 0
+        running_loss = 0.0
+
         correct = 0
+
         total = 0
 
         for images, labels in dataloader:
 
-            images = images.to(self.device)
-            labels = labels.to(self.device)
+            images = images.to(
+                self.device
+            )
+
+            labels = labels.to(
+                self.device
+            )
+
+            # -------------------------------------------
+            # CLEAR GRADIENTS
+            # -------------------------------------------
 
             self.optimizer.zero_grad()
 
-            outputs = self.model(images)
+            # -------------------------------------------
+            # FORWARD PASS
+            # -------------------------------------------
 
-            loss = self.criterion(outputs, labels)
+            outputs = self.model(
+                images
+            )
+
+            # -------------------------------------------
+            # LOSS
+            # -------------------------------------------
+
+            loss = self.criterion(
+                outputs,
+                labels
+            )
+
+            # -------------------------------------------
+            # BACKPROPAGATION
+            # -------------------------------------------
 
             loss.backward()
 
+            # -------------------------------------------
+            # UPDATE MODEL
+            # -------------------------------------------
+
             self.optimizer.step()
+
+            # -------------------------------------------
+            # STATISTICS
+            # -------------------------------------------
 
             running_loss += loss.item()
 
-            _, predicted = outputs.max(1)
+            _, predicted = torch.max(
+                outputs,
+                1
+            )
 
             total += labels.size(0)
 
-            correct += predicted.eq(labels).sum().item()
+            correct += (
+                predicted
+                .eq(labels)
+                .sum()
+                .item()
+            )
 
-        loss = running_loss / len(dataloader)
+        average_loss = (
+            running_loss
+            / len(dataloader)
+        )
 
-        accuracy = 100 * correct / total
+        accuracy = (
+            100.0
+            * correct
+            / total
+        )
 
-        return loss, accuracy
+        return (
+            average_loss,
+            accuracy,
+        )
+
+
+    # ---------------------------------------------------
+    # VALIDATION
+    # ---------------------------------------------------
 
     @torch.no_grad()
-    def validate(self, dataloader):
+    def validate(
+        self,
+        dataloader
+    ):
 
         self.model.eval()
 
-        running_loss = 0
+        running_loss = 0.0
+
         correct = 0
+
         total = 0
 
         for images, labels in dataloader:
 
-            images = images.to(self.device)
-            labels = labels.to(self.device)
+            images = images.to(
+                self.device
+            )
 
-            outputs = self.model(images)
+            labels = labels.to(
+                self.device
+            )
 
-            loss = self.criterion(outputs, labels)
+            # -------------------------------------------
+            # FORWARD PASS
+            # -------------------------------------------
+
+            outputs = self.model(
+                images
+            )
+
+            # -------------------------------------------
+            # LOSS
+            # -------------------------------------------
+
+            loss = self.criterion(
+                outputs,
+                labels
+            )
 
             running_loss += loss.item()
 
-            _, predicted = outputs.max(1)
+            # -------------------------------------------
+            # PREDICTIONS
+            # -------------------------------------------
+
+            _, predicted = torch.max(
+                outputs,
+                1
+            )
 
             total += labels.size(0)
 
-            correct += predicted.eq(labels).sum().item()
+            correct += (
+                predicted
+                .eq(labels)
+                .sum()
+                .item()
+            )
 
-        loss = running_loss / len(dataloader)
+        average_loss = (
+            running_loss
+            / len(dataloader)
+        )
 
-        accuracy = 100 * correct / total
+        accuracy = (
+            100.0
+            * correct
+            / total
+        )
 
-        return loss, accuracy
+        return (
+            average_loss,
+            accuracy,
+        )

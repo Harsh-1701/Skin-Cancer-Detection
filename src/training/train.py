@@ -1,12 +1,18 @@
 import csv
 import torch
 
-from pathlib import Path
 from torch.optim import AdamW
 
 from src.models.efficientnet import build_model
-from src.preprocessing.create_dataloader import create_dataloaders
-from src.training.loss import create_weighted_loss
+
+from src.preprocessing.create_dataloader import (
+    create_dataloaders
+)
+
+from src.training.loss import (
+    create_weighted_loss
+)
+
 from src.training.train_config import (
     DEVICE,
     BATCH_SIZE,
@@ -18,63 +24,165 @@ from src.training.train_config import (
 from src.training.trainer import Trainer
 
 from src.utils.config import (
-    METADATA_PATH,
+    COMBINED_DATASET_PATH,
     MODEL_DIR,
     LOG_DIR,
 )
 
-MODEL_DIR.mkdir(parents=True, exist_ok=True)
-LOG_DIR.mkdir(parents=True, exist_ok=True)
 
-LOG_FILE = LOG_DIR / "training_log.csv"
+# ---------------------------------------------------
+# CREATE OUTPUT DIRECTORIES
+# ---------------------------------------------------
+
+MODEL_DIR.mkdir(
+    parents=True,
+    exist_ok=True
+)
+
+LOG_DIR.mkdir(
+    parents=True,
+    exist_ok=True
+)
 
 
-def save_checkpoint(filename, epoch, model, optimizer, val_acc):
+# ---------------------------------------------------
+# TRAINING LOG
+# ---------------------------------------------------
+
+LOG_FILE = (
+    LOG_DIR
+    / "training_log.csv"
+)
+
+
+# ---------------------------------------------------
+# CHECKPOINT FUNCTION
+# ---------------------------------------------------
+
+def save_checkpoint(
+    filename,
+    epoch,
+    model,
+    optimizer,
+    val_acc,
+):
 
     torch.save(
+
         {
             "epoch": epoch,
-            "model_state_dict": model.state_dict(),
-            "optimizer_state_dict": optimizer.state_dict(),
-            "validation_accuracy": val_acc,
+
+            "model_state_dict":
+                model.state_dict(),
+
+            "optimizer_state_dict":
+                optimizer.state_dict(),
+
+            "validation_accuracy":
+                val_acc,
         },
+
         MODEL_DIR / filename,
     )
 
 
+# ---------------------------------------------------
+# MAIN TRAINING FUNCTION
+# ---------------------------------------------------
+
 def main():
 
-    train_loader, val_loader, _ = create_dataloaders(
-        batch_size=BATCH_SIZE
+    print("=" * 60)
+    print("Skin Cancer Detection System - V2")
+    print("=" * 60)
+
+    print(
+        "\nDevice:",
+        DEVICE
     )
 
-    model = build_model()
+    print(
+        "Number of classes:",
+        9
+    )
+
+    # ------------------------------------------------
+    # CREATE DATA LOADERS
+    # ------------------------------------------------
+
+    train_loader, val_loader, _ = (
+        create_dataloaders(
+            batch_size=BATCH_SIZE
+        )
+    )
+
+    # ------------------------------------------------
+    # BUILD MODEL
+    # ------------------------------------------------
+
+    model = build_model(
+        num_classes=9
+    )
+
+    # ------------------------------------------------
+    # OPTIMIZER
+    # ------------------------------------------------
 
     optimizer = AdamW(
+
         model.parameters(),
+
         lr=LEARNING_RATE,
+
         weight_decay=WEIGHT_DECAY,
     )
 
+    # ------------------------------------------------
+    # WEIGHTED LOSS
+    # ------------------------------------------------
+
     criterion = create_weighted_loss(
-        METADATA_PATH,
+
+        COMBINED_DATASET_PATH,
+
         DEVICE,
     )
 
+    # ------------------------------------------------
+    # TRAINER
+    # ------------------------------------------------
+
     trainer = Trainer(
+
         model,
+
         optimizer,
+
         criterion,
+
         DEVICE,
     )
+
+    # ------------------------------------------------
+    # BEST MODEL TRACKING
+    # ------------------------------------------------
 
     best_accuracy = 0.0
 
-    with open(LOG_FILE, "w", newline="") as file:
+    # ------------------------------------------------
+    # TRAINING LOG
+    # ------------------------------------------------
+
+    with open(
+        LOG_FILE,
+        "w",
+        newline=""
+    ) as file:
 
         writer = csv.writer(file)
 
         writer.writerow(
+
             [
                 "Epoch",
                 "Train Loss",
@@ -84,29 +192,63 @@ def main():
             ]
         )
 
+        # --------------------------------------------
+        # EPOCH LOOP
+        # --------------------------------------------
+
         for epoch in range(NUM_EPOCHS):
 
-            train_loss, train_acc = trainer.train_one_epoch(
-                train_loader
+            train_loss, train_acc = (
+                trainer.train_one_epoch(
+                    train_loader
+                )
             )
 
-            val_loss, val_acc = trainer.validate(
-                val_loader
+            val_loss, val_acc = (
+                trainer.validate(
+                    val_loader
+                )
             )
 
-            print("-" * 60)
+            # ----------------------------------------
+            # DISPLAY RESULTS
+            # ----------------------------------------
 
-            print(f"Epoch {epoch+1}/{NUM_EPOCHS}")
+            print(
+                "\n" + "-" * 60
+            )
 
-            print(f"Train Loss : {train_loss:.4f}")
+            print(
+                f"Epoch "
+                f"{epoch + 1}/{NUM_EPOCHS}"
+            )
 
-            print(f"Train Accuracy : {train_acc:.2f}%")
+            print(
+                f"Train Loss       : "
+                f"{train_loss:.4f}"
+            )
 
-            print(f"Validation Loss : {val_loss:.4f}")
+            print(
+                f"Train Accuracy   : "
+                f"{train_acc:.2f}%"
+            )
 
-            print(f"Validation Accuracy : {val_acc:.2f}%")
+            print(
+                f"Validation Loss  : "
+                f"{val_loss:.4f}"
+            )
+
+            print(
+                f"Validation Accuracy : "
+                f"{val_acc:.2f}%"
+            )
+
+            # ----------------------------------------
+            # SAVE LOG
+            # ----------------------------------------
 
             writer.writerow(
+
                 [
                     epoch + 1,
                     train_loss,
@@ -116,39 +258,100 @@ def main():
                 ]
             )
 
+            file.flush()
+
+            # ----------------------------------------
+            # SAVE EPOCH CHECKPOINT
+            # ----------------------------------------
+
             save_checkpoint(
-                f"checkpoint_epoch_{epoch+1:02d}.pth",
+
+                f"checkpoint_epoch_"
+                f"{epoch + 1:02d}.pth",
+
                 epoch + 1,
+
                 model,
+
                 optimizer,
+
                 val_acc,
             )
 
+            # ----------------------------------------
+            # SAVE LAST MODEL
+            # ----------------------------------------
+
             save_checkpoint(
+
                 "last_model.pth",
+
                 epoch + 1,
+
                 model,
+
                 optimizer,
+
                 val_acc,
             )
+
+            # ----------------------------------------
+            # SAVE BEST MODEL
+            # ----------------------------------------
 
             if val_acc > best_accuracy:
 
                 best_accuracy = val_acc
 
                 save_checkpoint(
+
                     "best_model.pth",
+
                     epoch + 1,
+
                     model,
+
                     optimizer,
+
                     val_acc,
                 )
 
                 print(
-                    f"Best model saved! Validation Accuracy: {val_acc:.2f}%"
+                    f"\nBest model saved!"
+                    f" Validation Accuracy: "
+                    f"{val_acc:.2f}%"
                 )
 
-    print("\nTraining Completed.")
+    # ------------------------------------------------
+    # TRAINING COMPLETE
+    # ------------------------------------------------
+
+    print(
+        "\n" + "=" * 60
+    )
+
+    print(
+        "Training Completed."
+    )
+
+    print(
+        f"Best Validation Accuracy: "
+        f"{best_accuracy:.2f}%"
+    )
+
+    print(
+        f"Model saved in: "
+        f"{MODEL_DIR}"
+    )
+
+    print(
+        f"Training log saved in: "
+        f"{LOG_FILE}"
+    )
+
+    print(
+        "=" * 60
+    )
 
 
 if __name__ == "__main__":
