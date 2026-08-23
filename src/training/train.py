@@ -2,6 +2,7 @@ import csv
 import torch
 
 from torch.optim import AdamW
+from torch.optim.lr_scheduler import CosineAnnealingLR
 
 from src.models.efficientnet import build_model
 
@@ -31,7 +32,7 @@ from src.utils.config import (
 
 
 # ---------------------------------------------------
-# CREATE OUTPUT DIRECTORIES
+# OUTPUT DIRECTORIES
 # ---------------------------------------------------
 
 MODEL_DIR.mkdir(
@@ -51,7 +52,7 @@ LOG_DIR.mkdir(
 
 LOG_FILE = (
     LOG_DIR
-    / "training_log.csv"
+    / "training_log_b0_improved.csv"
 )
 
 
@@ -64,6 +65,7 @@ def save_checkpoint(
     epoch,
     model,
     optimizer,
+    scheduler,
     val_acc,
 ):
 
@@ -77,6 +79,9 @@ def save_checkpoint(
 
             "optimizer_state_dict":
                 optimizer.state_dict(),
+
+            "scheduler_state_dict":
+                scheduler.state_dict(),
 
             "validation_accuracy":
                 val_acc,
@@ -94,6 +99,7 @@ def main():
 
     print("=" * 60)
     print("Skin Cancer Detection System - V2")
+    print("Improved EfficientNet-B0 Experiment")
     print("=" * 60)
 
     print(
@@ -107,7 +113,7 @@ def main():
     )
 
     # ------------------------------------------------
-    # CREATE DATA LOADERS
+    # DATA LOADERS
     # ------------------------------------------------
 
     train_loader, val_loader, _ = (
@@ -117,7 +123,7 @@ def main():
     )
 
     # ------------------------------------------------
-    # BUILD MODEL
+    # MODEL
     # ------------------------------------------------
 
     model = build_model(
@@ -138,7 +144,20 @@ def main():
     )
 
     # ------------------------------------------------
-    # WEIGHTED LOSS
+    # COSINE LEARNING-RATE SCHEDULER
+    # ------------------------------------------------
+
+    scheduler = CosineAnnealingLR(
+
+        optimizer,
+
+        T_max=NUM_EPOCHS,
+
+        eta_min=1e-6,
+    )
+
+    # ------------------------------------------------
+    # LOSS
     # ------------------------------------------------
 
     criterion = create_weighted_loss(
@@ -163,14 +182,10 @@ def main():
         DEVICE,
     )
 
-    # ------------------------------------------------
-    # BEST MODEL TRACKING
-    # ------------------------------------------------
-
     best_accuracy = 0.0
 
     # ------------------------------------------------
-    # TRAINING LOG
+    # LOG
     # ------------------------------------------------
 
     with open(
@@ -182,9 +197,9 @@ def main():
         writer = csv.writer(file)
 
         writer.writerow(
-
             [
                 "Epoch",
+                "Learning Rate",
                 "Train Loss",
                 "Train Accuracy",
                 "Validation Loss",
@@ -210,9 +225,9 @@ def main():
                 )
             )
 
-            # ----------------------------------------
-            # DISPLAY RESULTS
-            # ----------------------------------------
+            current_lr = (
+                optimizer.param_groups[0]["lr"]
+            )
 
             print(
                 "\n" + "-" * 60
@@ -224,17 +239,22 @@ def main():
             )
 
             print(
-                f"Train Loss       : "
+                f"Learning Rate : "
+                f"{current_lr:.8f}"
+            )
+
+            print(
+                f"Train Loss : "
                 f"{train_loss:.4f}"
             )
 
             print(
-                f"Train Accuracy   : "
+                f"Train Accuracy : "
                 f"{train_acc:.2f}%"
             )
 
             print(
-                f"Validation Loss  : "
+                f"Validation Loss : "
                 f"{val_loss:.4f}"
             )
 
@@ -248,9 +268,9 @@ def main():
             # ----------------------------------------
 
             writer.writerow(
-
                 [
                     epoch + 1,
+                    current_lr,
                     train_loss,
                     train_acc,
                     val_loss,
@@ -261,12 +281,12 @@ def main():
             file.flush()
 
             # ----------------------------------------
-            # SAVE EPOCH CHECKPOINT
+            # CHECKPOINT
             # ----------------------------------------
 
             save_checkpoint(
 
-                f"checkpoint_epoch_"
+                f"b0_improved_epoch_"
                 f"{epoch + 1:02d}.pth",
 
                 epoch + 1,
@@ -275,28 +295,13 @@ def main():
 
                 optimizer,
 
-                val_acc,
-            )
-
-            # ----------------------------------------
-            # SAVE LAST MODEL
-            # ----------------------------------------
-
-            save_checkpoint(
-
-                "last_model.pth",
-
-                epoch + 1,
-
-                model,
-
-                optimizer,
+                scheduler,
 
                 val_acc,
             )
 
             # ----------------------------------------
-            # SAVE BEST MODEL
+            # BEST MODEL
             # ----------------------------------------
 
             if val_acc > best_accuracy:
@@ -305,7 +310,7 @@ def main():
 
                 save_checkpoint(
 
-                    "best_model.pth",
+                    "best_model_b0_improved.pth",
 
                     epoch + 1,
 
@@ -313,17 +318,25 @@ def main():
 
                     optimizer,
 
+                    scheduler,
+
                     val_acc,
                 )
 
                 print(
-                    f"\nBest model saved!"
+                    f"\nBest improved B0 model saved!"
                     f" Validation Accuracy: "
                     f"{val_acc:.2f}%"
                 )
 
+            # ----------------------------------------
+            # UPDATE LEARNING RATE
+            # ----------------------------------------
+
+            scheduler.step()
+
     # ------------------------------------------------
-    # TRAINING COMPLETE
+    # COMPLETE
     # ------------------------------------------------
 
     print(
@@ -331,7 +344,7 @@ def main():
     )
 
     print(
-        "Training Completed."
+        "Improved B0 Training Completed."
     )
 
     print(
@@ -355,4 +368,5 @@ def main():
 
 
 if __name__ == "__main__":
+
     main()
