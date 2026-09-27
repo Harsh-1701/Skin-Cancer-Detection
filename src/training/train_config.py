@@ -18,9 +18,11 @@ DEVICE = torch.device(
 
 NUM_EPOCHS = 20
 
-BATCH_SIZE = 32
+# B4 is considerably larger than B0.
+# Start conservatively to avoid GPU out-of-memory errors.
+BATCH_SIZE = 4
 
-LEARNING_RATE = 1e-4
+LEARNING_RATE = 5e-5
 
 WEIGHT_DECAY = 1e-4
 
@@ -31,7 +33,7 @@ WEIGHT_DECAY = 1e-4
 
 NUM_CLASSES = 9
 
-MODEL_NAME = "efficientnet_b0"
+MODEL_NAME = "efficientnet_b4"
 
 
 # ---------------------------------------------------

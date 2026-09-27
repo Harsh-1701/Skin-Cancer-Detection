@@ -1,13 +1,13 @@
 """
 Image preprocessing and augmentation
-for EfficientNet-B0
+for EfficientNet-B4
 """
 
 import albumentations as A
 from albumentations.pytorch import ToTensorV2
 
 
-IMAGE_SIZE = 224
+IMAGE_SIZE = 380
 
 
 # -------------------------------------------------------
@@ -33,10 +33,10 @@ train_transform = A.Compose([
         p=0.5,
     ),
 
-    A.ShiftScaleRotate(
-        shift_limit=0.05,
-        scale_limit=0.10,
-        rotate_limit=20,
+    A.Affine(
+        translate_percent=0.05,
+        scale=(0.90, 1.10),
+        rotate=(-20, 20),
         border_mode=0,
         p=0.5,
     ),

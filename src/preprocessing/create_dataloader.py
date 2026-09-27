@@ -17,8 +17,23 @@ from src.utils.config import (
 )
 
 
+# -------------------------------------------------------
+# DATALOADER PERFORMANCE SETTINGS
+# -------------------------------------------------------
+
+TRAIN_NUM_WORKERS = 2
+
+VAL_NUM_WORKERS = 0
+
+PIN_MEMORY = True
+
+PERSISTENT_WORKERS = True
+
+PREFETCH_FACTOR = 2
+
+
 def create_dataloaders(
-    batch_size=32
+    batch_size=4
 ):
 
     # ---------------------------------------------------
@@ -44,8 +59,6 @@ def create_dataloaders(
 
     # ---------------------------------------------------
     # TRAIN / TEMP SPLIT
-    # 70% TRAIN
-    # 30% TEMPORARY
     # ---------------------------------------------------
 
     train_df, temp_df = train_test_split(
@@ -61,8 +74,6 @@ def create_dataloaders(
 
     # ---------------------------------------------------
     # VALIDATION / TEST SPLIT
-    # 15% VALIDATION
-    # 15% TEST
     # ---------------------------------------------------
 
     val_df, test_df = train_test_split(
@@ -92,6 +103,19 @@ def create_dataloaders(
     )
 
     # ---------------------------------------------------
+    # BUILD IMAGE INDEX ONCE
+    # ---------------------------------------------------
+
+    print(
+        "\nBuilding image path index..."
+    )
+
+    image_index = (
+        SkinCancerDataset
+        ._build_image_index()
+    )
+
+    # ---------------------------------------------------
     # CREATE DATASETS
     # ---------------------------------------------------
 
@@ -100,6 +124,8 @@ def create_dataloaders(
         train_df,
 
         transform=train_transform,
+
+        image_index=image_index,
     )
 
     val_dataset = SkinCancerDataset(
@@ -107,6 +133,8 @@ def create_dataloaders(
         val_df,
 
         transform=val_transform,
+
+        image_index=image_index,
     )
 
     test_dataset = SkinCancerDataset(
@@ -114,10 +142,12 @@ def create_dataloaders(
         test_df,
 
         transform=val_transform,
+
+        image_index=image_index,
     )
 
     # ---------------------------------------------------
-    # CREATE DATALOADERS
+    # TRAIN DATALOADER
     # ---------------------------------------------------
 
     train_loader = DataLoader(
@@ -128,8 +158,18 @@ def create_dataloaders(
 
         shuffle=True,
 
-        num_workers=0,
+        num_workers=TRAIN_NUM_WORKERS,
+
+        pin_memory=PIN_MEMORY,
+
+        persistent_workers=PERSISTENT_WORKERS,
+
+        prefetch_factor=PREFETCH_FACTOR,
     )
+
+    # ---------------------------------------------------
+    # VALIDATION DATALOADER
+    # ---------------------------------------------------
 
     val_loader = DataLoader(
 
@@ -139,8 +179,14 @@ def create_dataloaders(
 
         shuffle=False,
 
-        num_workers=0,
+        num_workers=VAL_NUM_WORKERS,
+
+        pin_memory=PIN_MEMORY,
     )
+
+    # ---------------------------------------------------
+    # TEST DATALOADER
+    # ---------------------------------------------------
 
     test_loader = DataLoader(
 
@@ -150,11 +196,13 @@ def create_dataloaders(
 
         shuffle=False,
 
-        num_workers=0,
+        num_workers=VAL_NUM_WORKERS,
+
+        pin_memory=PIN_MEMORY,
     )
 
     # ---------------------------------------------------
-    # RETURN LOADERS
+    # RETURN
     # ---------------------------------------------------
 
     return (

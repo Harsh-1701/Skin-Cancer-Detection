@@ -11,86 +11,157 @@ from src.utils.config import (
 
 class SkinCancerDataset(Dataset):
 
-    def __init__(self, dataframe, transform=None):
+    def __init__(
+        self,
+        dataframe,
+        transform=None,
+        image_index=None,
+    ):
 
         self.dataframe = dataframe.reset_index(drop=True)
+
         self.transform = transform
 
-    def __len__(self):
+        # ---------------------------------------------------
+        # IMAGE PATH INDEX
+        # ---------------------------------------------------
 
-        return len(self.dataframe)
+        if image_index is None:
+            self.image_index = self._build_image_index()
+        else:
+            self.image_index = image_index
 
-    def _find_image(self, row):
+    # -------------------------------------------------------
+    # BUILD IMAGE INDEX
+    # -------------------------------------------------------
 
-        image_name = row["image_name"]
-        source = row["source"]
+    @staticmethod
+    def _build_image_index():
+
+        print("\nBuilding image path index...")
+
+        image_index = {
+            "HAM10000": {},
+            "ISIC2019": {},
+            "IMAGENETTE": {},
+        }
 
         # ---------------------------------------------------
         # HAM10000
         # ---------------------------------------------------
 
-        if source == "HAM10000":
+        ham_folders = [
+            DATASET_DIR
+            / "images"
+            / "HAM10000_images_part_1",
 
-            ham_folders = [
-                DATASET_DIR / "images" / "HAM10000_images_part_1",
-                DATASET_DIR / "images" / "HAM10000_images_part_2",
-            ]
+            DATASET_DIR
+            / "images"
+            / "HAM10000_images_part_2",
+        ]
 
-            for folder in ham_folders:
+        for folder in ham_folders:
 
-                image_path = folder / image_name
+            if not folder.exists():
+                continue
 
-                if image_path.exists():
+            for image_path in folder.iterdir():
 
-                    return image_path
+                if image_path.is_file():
+
+                    image_index["HAM10000"][
+                        image_path.name
+                    ] = image_path
 
         # ---------------------------------------------------
         # ISIC2019
         # ---------------------------------------------------
 
-        elif source == "ISIC2019":
+        isic_root = (
+            DATASET_DIR
+            / "ISIC2019"
+            / "images"
+        )
 
-            isic_root = (
-                DATASET_DIR
-                / "ISIC2019"
-                / "images"
-            )
+        if isic_root.exists():
 
-            for folder in isic_root.iterdir():
+            for image_path in isic_root.rglob("*"):
 
-                if folder.is_dir():
+                if image_path.is_file():
 
-                    image_path = folder / image_name
-
-                    if image_path.exists():
-
-                        return image_path
+                    image_index["ISIC2019"][
+                        image_path.name
+                    ] = image_path
 
         # ---------------------------------------------------
         # IMAGENETTE UNKNOWN
         # ---------------------------------------------------
 
-        elif source == "IMAGENETTE":
+        unknown_root = (
+            DATASET_DIR
+            / "train"
+            / "unknown"
+        )
 
-            image_path = (
-                DATASET_DIR
-                / "train"
-                / "unknown"
-                / image_name
+        if unknown_root.exists():
+
+            for image_path in unknown_root.iterdir():
+
+                if image_path.is_file():
+
+                    image_index["IMAGENETTE"][
+                        image_path.name
+                    ] = image_path
+
+        print(
+            "HAM10000 images indexed :",
+            len(image_index["HAM10000"])
+        )
+
+        print(
+            "ISIC2019 images indexed :",
+            len(image_index["ISIC2019"])
+        )
+
+        print(
+            "Unknown images indexed  :",
+            len(image_index["IMAGENETTE"])
+        )
+
+        return image_index
+
+    # -------------------------------------------------------
+    # LENGTH
+    # -------------------------------------------------------
+
+    def __len__(self):
+
+        return len(self.dataframe)
+
+    # -------------------------------------------------------
+    # FIND IMAGE
+    # -------------------------------------------------------
+
+    def _find_image(self, row):
+
+        image_name = row["image_name"]
+
+        source = row["source"]
+
+        try:
+
+            return self.image_index[source][image_name]
+
+        except KeyError:
+
+            raise FileNotFoundError(
+                f"Image not found: {image_name} "
+                f"(source: {source})"
             )
 
-            if image_path.exists():
-
-                return image_path
-
-        # ---------------------------------------------------
-        # IMAGE NOT FOUND
-        # ---------------------------------------------------
-
-        raise FileNotFoundError(
-            f"Image not found: {image_name} "
-            f"(source: {source})"
-        )
+    # -------------------------------------------------------
+    # GET ITEM
+    # -------------------------------------------------------
 
     def __getitem__(self, index):
 

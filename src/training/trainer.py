@@ -1,5 +1,5 @@
 import torch
-
+from torch.amp import autocast, GradScaler
 
 class Trainer:
 
@@ -18,6 +18,11 @@ class Trainer:
         self.criterion = criterion
 
         self.device = device
+
+        self.scaler = GradScaler(
+            "cuda",
+            enabled=(device.type == "cuda"),
+        )
 
 
     # ---------------------------------------------------
@@ -40,11 +45,13 @@ class Trainer:
         for images, labels in dataloader:
 
             images = images.to(
-                self.device
+                self.device,
+                non_blocking=True,
             )
 
             labels = labels.to(
-                self.device
+                self.device,
+                non_blocking=True,
             )
 
             # -------------------------------------------
@@ -57,30 +64,29 @@ class Trainer:
             # FORWARD PASS
             # -------------------------------------------
 
-            outputs = self.model(
-                images
+            with autocast(
+                device_type=self.device.type,
+                enabled=(self.device.type == "cuda"),
+            ):
+
+                outputs = self.model(
+                    images
+                )
+
+                loss = self.criterion(
+                    outputs,
+                    labels
+                )
+
+            self.scaler.scale(
+                loss
+            ).backward()
+
+            self.scaler.step(
+                self.optimizer
             )
 
-            # -------------------------------------------
-            # LOSS
-            # -------------------------------------------
-
-            loss = self.criterion(
-                outputs,
-                labels
-            )
-
-            # -------------------------------------------
-            # BACKPROPAGATION
-            # -------------------------------------------
-
-            loss.backward()
-
-            # -------------------------------------------
-            # UPDATE MODEL
-            # -------------------------------------------
-
-            self.optimizer.step()
+            self.scaler.update()
 
             # -------------------------------------------
             # STATISTICS
@@ -151,16 +157,21 @@ class Trainer:
             # FORWARD PASS
             # -------------------------------------------
 
-            outputs = self.model(
-                images
-            )
+            with autocast(
+                device_type=self.device.type,
+                enabled=(self.device.type == "cuda"),
+            ):
+
+                outputs = self.model(
+                    images
+                )
 
             # -------------------------------------------
             # LOSS
             # -------------------------------------------
 
             loss = self.criterion(
-                outputs,
+                outputs.float(),
                 labels
             )
 

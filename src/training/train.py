@@ -99,7 +99,7 @@ def main():
 
     print("=" * 60)
     print("Skin Cancer Detection System - V2")
-    print("Improved EfficientNet-B0 Experiment")
+    print("EfficientNet-B4 Experiment")
     print("=" * 60)
 
     print(
