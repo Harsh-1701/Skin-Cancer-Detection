@@ -65,3 +65,28 @@ Thumbs.db
 
 *.tmp
 *.temp
+# Python environment and cache
+venv/
+.venv/
+__pycache__/
+*.py[cod]
+.env
+
+# Datasets
+dataset/
+*.csv
+
+# Trained model checkpoints
+outputs/models/
+*.pth
+*.pt
+
+# Temporary prediction files
+outputs/predictions/
+outputs/uploaded_image.png
+outputs/gradcam_image.png
+
+# Local backups
+src/app/app_backup.py
+src/app/pdf_report_backup.py
+src/app/predict_backup.py

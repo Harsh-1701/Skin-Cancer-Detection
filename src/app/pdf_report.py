@@ -1,3 +1,12 @@
+﻿import os
+import html
+import datetime
+
+from reportlab.lib import colors
+from reportlab.lib.enums import TA_CENTER, TA_LEFT
+from reportlab.lib.pagesizes import A4
+from reportlab.lib.styles import getSampleStyleSheet, ParagraphStyle
+from reportlab.lib.units import mm
 from reportlab.platypus import (
     SimpleDocTemplate,
     Paragraph,
@@ -5,23 +14,36 @@ from reportlab.platypus import (
     Image,
     Table,
     TableStyle,
+    KeepTogether,
 )
 
-from reportlab.lib.styles import getSampleStyleSheet
-from reportlab.lib.enums import TA_CENTER
-from reportlab.lib.units import inch
-from reportlab.lib.colors import (
-    darkblue,
-    lightgrey,
-    black,
-    whitesmoke,
-)
 
-from reportlab.lib.styles import ParagraphStyle
-from reportlab.lib import colors
+NAVY = colors.HexColor("#142D4E")
+BLUE = colors.HexColor("#247A9B")
+TEXT = colors.HexColor("#26364A")
+MUTED = colors.HexColor("#65758B")
+LIGHT = colors.HexColor("#F3F7FA")
+BORDER = colors.HexColor("#DCE5ED")
+WARNING_BG = colors.HexColor("#FFF5DF")
+WARNING_BORDER = colors.HexColor("#E8C66D")
+WHITE = colors.white
 
-import datetime
-import os
+
+def _safe_text(value):
+    """Escape user- or model-derived text before using it in a PDF paragraph."""
+    return html.escape(str(value if value is not None else ""))
+
+
+def _fit_image(path, max_width, max_height):
+    """Fit an image inside a box without changing its aspect ratio."""
+    if not path or not os.path.isfile(path):
+        return None
+
+    img = Image(path)
+    scale = min(max_width / img.imageWidth, max_height / img.imageHeight)
+    img.drawWidth = img.imageWidth * scale
+    img.drawHeight = img.imageHeight * scale
+    return img
 
 
 def generate_pdf(
@@ -33,224 +55,255 @@ def generate_pdf(
     confidence,
     description,
 ):
-    # Professional modern color palette
-    PRIMARY_COLOR = colors.HexColor("#1A365D")   # Deep clinical navy
-    SECONDARY_COLOR = colors.HexColor("#2B6CB0") # Clean slate blue
-    TEXT_DARK = colors.HexColor("#2D3748")       # Dark charcoal for readability
-    TEXT_MUTED = colors.HexColor("#718096")      # Neutral grey for labels/metadata
-    BG_LIGHT = colors.HexColor("#F8FAFC")        # Soft off-white for table rows
-    BORDER_COLOR = colors.HexColor("#E2E8F0")    # Modern subtle borders
+    page_width, page_height = A4
+    left_margin = 18 * mm
+    right_margin = 18 * mm
+    usable_width = page_width - left_margin - right_margin
 
-    # Document setup with elegant 0.75 inch margins
     doc = SimpleDocTemplate(
         pdf_path,
-        rightMargin=0.75 * inch,
-        leftMargin=0.75 * inch,
-        topMargin=0.75 * inch,
-        bottomMargin=0.75 * inch,
+        pagesize=A4,
+        rightMargin=right_margin,
+        leftMargin=left_margin,
+        topMargin=17 * mm,
+        bottomMargin=19 * mm,
+        title="Skin Lesion Classification Research Report",
+        author="Team 13",
     )
 
-    styles = getSampleStyleSheet()
+    base = getSampleStyleSheet()
 
-    # Define clean, modern typography styles
     title_style = ParagraphStyle(
-        "DocTitle",
-        parent=styles["Heading1"],
-        textColor=PRIMARY_COLOR,
-        fontSize=24,
-        leading=28,
+        "ReportTitle",
+        parent=base["Title"],
         fontName="Helvetica-Bold",
-        spaceAfter=4,
+        fontSize=23,
+        leading=28,
+        textColor=NAVY,
+        alignment=TA_LEFT,
+        spaceAfter=5,
     )
 
     subtitle_style = ParagraphStyle(
-        "DocSubtitle",
-        parent=styles["Normal"],
-        textColor=TEXT_MUTED,
-        fontSize=10,
-        leading=14,
+        "Subtitle",
+        parent=base["Normal"],
+        fontSize=9,
+        leading=13,
+        textColor=MUTED,
+        spaceAfter=3,
     )
 
-    heading_style = ParagraphStyle(
-        "SectionHeading",
-        parent=styles["Heading2"],
-        textColor=PRIMARY_COLOR,
+    section_style = ParagraphStyle(
+        "Section",
+        parent=base["Heading2"],
+        fontName="Helvetica-Bold",
         fontSize=12,
         leading=16,
-        fontName="Helvetica-Bold",
-        spaceBefore=12,
-        spaceAfter=6,
+        textColor=NAVY,
+        spaceBefore=11,
+        spaceAfter=7,
+        keepWithNext=True,
     )
 
-    cell_style = ParagraphStyle(
-        "TableCell",
-        parent=styles["Normal"],
-        textColor=TEXT_DARK,
-        fontSize=10,
+    body_style = ParagraphStyle(
+        "Body",
+        parent=base["BodyText"],
+        fontSize=9,
         leading=14,
+        textColor=TEXT,
+        spaceAfter=3,
     )
 
-    cell_bold = ParagraphStyle(
-        "TableCellBold",
-        parent=cell_style,
+    label_style = ParagraphStyle(
+        "Label",
+        parent=body_style,
         fontName="Helvetica-Bold",
+        textColor=NAVY,
     )
 
-    desc_style = ParagraphStyle(
-        "DescText",
-        parent=styles["BodyText"],
-        textColor=TEXT_DARK,
-        fontSize=10,
-        leading=15,
-    )
-
-    footer_style = ParagraphStyle(
-        "FooterText",
-        parent=styles["Normal"],
-        textColor=TEXT_MUTED,
+    small_style = ParagraphStyle(
+        "Small",
+        parent=body_style,
         fontSize=8,
+        leading=11,
+        textColor=MUTED,
+    )
+
+    warning_style = ParagraphStyle(
+        "Warning",
+        parent=body_style,
+        fontSize=8.5,
         leading=12,
-        alignment=TA_CENTER,
+        textColor=TEXT,
     )
 
     story = []
+    generated_at = datetime.datetime.now().strftime("%d %B %Y, %I:%M %p")
 
-    # --- HEADER SECTION ---
-    story.append(Paragraph("Skin Cancer Detection Report", title_style))
-    current_time = datetime.datetime.now().strftime('%d %B %Y | %I:%M %p')
-    story.append(Paragraph(f"<b>Generated on:</b> {current_time}", subtitle_style))
-    story.append(Spacer(1, 0.15 * inch))
+    # Header
+    story.append(Paragraph("Skin Lesion Analysis", title_style))
+    story.append(Paragraph("CNN assisted classification research report", subtitle_style))
+    story.append(Paragraph(f"Generated: {_safe_text(generated_at)}", small_style))
+    story.append(Spacer(1, 5 * mm))
 
-    # Clean divider line
-    divider = Table([[""]], colWidths=[7 * inch])
-    divider.setStyle(TableStyle([
-        ("LINEABOVE", (0, 0), (-1, -1), 1.5, PRIMARY_COLOR),
-        ("BOTTOMPADDING", (0, 0), (-1, -1), 0),
-        ("TOPPADDING", (0, 0), (-1, -1), 0),
+    header_rule = Table([[""]], colWidths=[usable_width], rowHeights=[1.2 * mm])
+    header_rule.setStyle(TableStyle([
+        ("BACKGROUND", (0, 0), (-1, -1), BLUE),
+        ("LEFTPADDING", (0, 0), (-1, -1), 0),
+        ("RIGHTPADDING", (0, 0), (-1, -1), 0),
     ]))
-    story.append(divider)
-    story.append(Spacer(1, 0.2 * inch))
+    story.append(header_rule)
+    story.append(Spacer(1, 3 * mm))
 
-    # Helper function to wrap text in Paragraphs for flawless table formatting
-    def wrap_text(text, style):
-        return Paragraph(str(text), style)
+    # Model output
+    story.append(Paragraph("Model Output", section_style))
 
-    # --- PREDICTION SUMMARY SECTION ---
-    story.append(Paragraph("Prediction Summary", heading_style))
-    
-    summary_data = [
-        [wrap_text("Predicted Disease", cell_bold), wrap_text(disease, cell_style)],
-        [wrap_text("Lesion Type", cell_bold), wrap_text(lesion_type, cell_style)],
-        [wrap_text("Confidence Score", cell_bold), wrap_text(f"{confidence:.2f}%", cell_style)],
+    summary = [
+        [Paragraph("Predicted category", label_style),
+         Paragraph(_safe_text(disease), body_style)],
+        [Paragraph("Dataset label", label_style),
+         Paragraph(_safe_text(lesion_type), body_style)],
+        [Paragraph("Model confidence score", label_style),
+         Paragraph(f"{float(confidence):.2f}%", body_style)],
     ]
 
-    summary_table = Table(summary_data, colWidths=[2.3 * inch, 4.7 * inch])
-    summary_table.setStyle(
-        TableStyle(
-            [
-                ("BACKGROUND", (0, 0), (-1, -1), BG_LIGHT),
-                ("VALIGN", (0, 0), (-1, -1), "MIDDLE"),
-                ("TOPPADDING", (0, 0), (-1, -1), 8),
-                ("BOTTOMPADDING", (0, 0), (-1, -1), 8),
-                ("LEFTPADDING", (0, 0), (-1, -1), 12),
-                ("RIGHTPADDING", (0, 0), (-1, -1), 12),
-                ("LINEBELOW", (0, 0), (-1, -2), 0.5, BORDER_COLOR),
-                ("BOX", (0, 0), (-1, -1), 1, BORDER_COLOR),
-            ]
-        )
+    summary_table = Table(
+        summary,
+        colWidths=[usable_width * 0.38, usable_width * 0.62],
     )
+    summary_table.setStyle(TableStyle([
+        ("BACKGROUND", (0, 0), (-1, -1), LIGHT),
+        ("VALIGN", (0, 0), (-1, -1), "MIDDLE"),
+        ("BOX", (0, 0), (-1, -1), 0.7, BORDER),
+        ("INNERGRID", (0, 0), (-1, -1), 0.4, BORDER),
+        ("LEFTPADDING", (0, 0), (-1, -1), 9),
+        ("RIGHTPADDING", (0, 0), (-1, -1), 9),
+        ("TOPPADDING", (0, 0), (-1, -1), 8),
+        ("BOTTOMPADDING", (0, 0), (-1, -1), 8),
+    ]))
     story.append(summary_table)
-    story.append(Spacer(1, 0.2 * inch))
 
-    # --- IMAGE ANALYSIS SECTION ---
-    images = []
-    if os.path.exists(uploaded_image):
-        images.append(Image(uploaded_image, width=2.8 * inch, height=2.4 * inch))
-    if os.path.exists(gradcam_image):
-        images.append(Image(gradcam_image, width=2.8 * inch, height=2.4 * inch))
-
-    if len(images) == 2:
-        story.append(Paragraph("Image Analysis", heading_style))
-        
-        # Wrapped side-by-side images with visual frame
-        image_table_data = [
-            images,
-            [
-                wrap_text("<b>Figure 1:</b> Uploaded Clinical Image", subtitle_style),
-                wrap_text("<b>Figure 2:</b> Grad-CAM Activation Map", subtitle_style)
-            ]
-        ]
-        image_table = Table(image_table_data, colWidths=[3.5 * inch, 3.5 * inch])
-        image_table.setStyle(
-            TableStyle([
-                ("ALIGN", (0, 0), (-1, -1), "CENTER"),
-                ("VALIGN", (0, 0), (-1, -1), "TOP"),
-                ("TOPPADDING", (0, 0), (-1, -1), 6),
-                ("BOTTOMPADDING", (0, 0), (-1, -1), 6),
-            ])
-        )
-        story.append(image_table)
-        story.append(Spacer(1, 0.2 * inch))
-
-    # --- CLINICAL DESCRIPTION SECTION ---
-    story.append(Paragraph("Clinical Description", heading_style))
-    
-    # Beautiful callout card layout for the text description
-    desc_table_data = [[wrap_text(description, desc_style)]]
-    desc_table = Table(desc_table_data, colWidths=[7.0 * inch])
-    desc_table.setStyle(
-        TableStyle([
-            ("BACKGROUND", (0, 0), (-1, -1), BG_LIGHT),
-            ("LINELEFT", (0, 0), (0, -1), 3, SECONDARY_COLOR), # Left accent border
-            ("TOPPADDING", (0, 0), (-1, -1), 10),
-            ("BOTTOMPADDING", (0, 0), (-1, -1), 10),
-            ("LEFTPADDING", (0, 0), (-1, -1), 14),
-            ("RIGHTPADDING", (0, 0), (-1, -1), 14),
-            ("BOX", (0, 0), (-1, -1), 0.5, BORDER_COLOR),
-        ])
+    story.append(Paragraph("Category Information", section_style))
+    description_text = _safe_text(description)
+    desc_table = Table(
+        [[Paragraph(description_text, body_style)]],
+        colWidths=[usable_width],
     )
+    desc_table.setStyle(TableStyle([
+        ("BACKGROUND", (0, 0), (-1, -1), LIGHT),
+        ("BOX", (0, 0), (-1, -1), 0.6, BORDER),
+        ("LINEBEFORE", (0, 0), (0, -1), 3, BLUE),
+        ("LEFTPADDING", (0, 0), (-1, -1), 10),
+        ("RIGHTPADDING", (0, 0), (-1, -1), 10),
+        ("TOPPADDING", (0, 0), (-1, -1), 9),
+        ("BOTTOMPADDING", (0, 0), (-1, -1), 9),
+    ]))
     story.append(desc_table)
-    story.append(Spacer(1, 0.25 * inch))
 
-    # --- PROJECT INFORMATION SECTION ---
-    story.append(Paragraph("Project Information", heading_style))
+    # Image section, with aspect ratios preserved
+    original = _fit_image(
+        uploaded_image,
+        max_width=(usable_width / 2) - 12 * mm,
+        max_height=65 * mm,
+    )
+    heatmap = _fit_image(
+        gradcam_image,
+        max_width=(usable_width / 2) - 12 * mm,
+        max_height=65 * mm,
+    )
 
-    info = [
-        [wrap_text("Model Architecture", cell_bold), wrap_text("EfficientNet-B0", cell_style)],
-        [wrap_text("Dataset Used", cell_bold), wrap_text("HAM10000", cell_style)],
-        [wrap_text("Department", cell_bold), wrap_text("Electronics and Communication Engineering", cell_style)],
-        [wrap_text("Project Guide", cell_bold), wrap_text("Dr. Amit Gangopadhyay", cell_style)],
+    if original is not None or heatmap is not None:
+        story.append(Paragraph("Image Review", section_style))
+
+        cell_width = usable_width / 2
+        image_cells = [
+            original if original is not None else Paragraph("Original image unavailable.", small_style),
+            heatmap if heatmap is not None else Paragraph(
+                "Grad-CAM visualization unavailable.", small_style
+            ),
+        ]
+        captions = [
+            Paragraph("<b>Uploaded image</b>", small_style),
+            Paragraph("<b>Grad-CAM visualization</b>", small_style),
+        ]
+
+        image_table = Table(
+            [image_cells, captions],
+            colWidths=[cell_width, cell_width],
+        )
+        image_table.setStyle(TableStyle([
+            ("ALIGN", (0, 0), (-1, -1), "CENTER"),
+            ("VALIGN", (0, 0), (-1, -1), "MIDDLE"),
+            ("BOX", (0, 0), (-1, 0), 0.5, BORDER),
+            ("INNERGRID", (0, 0), (-1, 0), 0.5, BORDER),
+            ("LEFTPADDING", (0, 0), (-1, -1), 5),
+            ("RIGHTPADDING", (0, 0), (-1, -1), 5),
+            ("TOPPADDING", (0, 0), (-1, -1), 7),
+            ("BOTTOMPADDING", (0, 0), (-1, -1), 7),
+            ("BACKGROUND", (0, 1), (-1, 1), LIGHT),
+        ]))
+        story.append(image_table)
+        story.append(Paragraph(
+            "Grad-CAM highlights image regions associated with the model's output. "
+            "It does not establish why a prediction is correct and is not clinical evidence.",
+            small_style,
+        ))
+
+    # Project metadata
+    story.append(Paragraph("Project Information", section_style))
+
+    project_rows = [
+        [Paragraph("Model architecture", label_style),
+         Paragraph("EfficientNet-B0", body_style)],
+        [Paragraph("Task", label_style),
+         Paragraph("Nine-category skin-lesion image classification", body_style)],
+        [Paragraph("Dataset scope", label_style),
+         Paragraph("Combined HAM10000, ISIC2019, and unknown-image category", body_style)],
+        [Paragraph("Interface", label_style),
+         Paragraph("Streamlit", body_style)],
     ]
 
-    info_table = Table(info, colWidths=[2.3 * inch, 4.7 * inch])
-    info_table.setStyle(
-        TableStyle([
-            ("BACKGROUND", (0, 0), (-1, -1), BG_LIGHT),
-            ("VALIGN", (0, 0), (-1, -1), "MIDDLE"),
-            ("TOPPADDING", (0, 0), (-1, -1), 6),
-            ("BOTTOMPADDING", (0, 0), (-1, -1), 6),
-            ("LEFTPADDING", (0, 0), (-1, -1), 12),
-            ("RIGHTPADDING", (0, 0), (-1, -1), 12),
-            ("LINEBELOW", (0, 0), (-1, -2), 0.5, BORDER_COLOR),
-            ("BOX", (0, 0), (-1, -1), 1, BORDER_COLOR),
-        ])
+    project_table = Table(
+        project_rows,
+        colWidths=[usable_width * 0.38, usable_width * 0.62],
     )
-    story.append(info_table)
-    story.append(Spacer(1, 0.2 * inch))
+    project_table.setStyle(TableStyle([
+        ("BACKGROUND", (0, 0), (-1, -1), WHITE),
+        ("BOX", (0, 0), (-1, -1), 0.6, BORDER),
+        ("INNERGRID", (0, 0), (-1, -1), 0.4, BORDER),
+        ("VALIGN", (0, 0), (-1, -1), "TOP"),
+        ("LEFTPADDING", (0, 0), (-1, -1), 8),
+        ("RIGHTPADDING", (0, 0), (-1, -1), 8),
+        ("TOPPADDING", (0, 0), (-1, -1), 6),
+        ("BOTTOMPADDING", (0, 0), (-1, -1), 6),
+    ]))
+    story.append(project_table)
+    story.append(Spacer(1, 5 * mm))
 
-    # --- DEVELOPERS & FOOTER ---
-    story.append(Paragraph("Developed By", heading_style))
-    
-    # Sleek inline row style instead of bullet points to save space and look modern
-    devs_text = "<b>Harsh Singh</b> &nbsp;&bull;&nbsp; <b>Ayush Raj</b> &nbsp;&bull;&nbsp; <b>Swetangi Ray</b>"
-    story.append(Paragraph(devs_text, cell_style))
-    story.append(Spacer(1, 0.25 * inch))
+    story.append(Paragraph(
+        "For academic demonstration only. This system is not validated for clinical use. "
+        "A model score must not be interpreted as a confirmed diagnosis.",
+        small_style,
+    ))
 
-    # Disclaimer note
-    disclaimer = (
-        "<i>This report is generated automatically by the Skin Cancer Detection System "
-        "for academic demonstration purposes and should not be considered a clinical medical diagnosis.</i>"
-    )
-    story.append(Paragraph(disclaimer, footer_style))
+    def draw_page(canvas, document):
+        canvas.saveState()
+        canvas.setStrokeColor(BORDER)
+        canvas.setLineWidth(0.5)
+        canvas.line(
+            left_margin,
+            13 * mm,
+            page_width - right_margin,
+            13 * mm,
+        )
+        canvas.setFont("Helvetica", 8)
+        canvas.setFillColor(MUTED)
+        canvas.drawString(left_margin, 8 * mm, "Harsh | Ayush | Swetangi")
+        canvas.drawRightString(
+            page_width - right_margin,
+            8 * mm,
+            f"Page {document.page}",
+        )
+        canvas.restoreState()
 
-    doc.build(story)
+    doc.build(story, onFirstPage=draw_page, onLaterPages=draw_page)

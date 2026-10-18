@@ -1,5 +1,4 @@
 import numpy as np
-import pandas as pd
 import torch
 
 from sklearn.utils.class_weight import compute_class_weight
@@ -7,44 +6,82 @@ from sklearn.utils.class_weight import compute_class_weight
 from src.utils.config import LABEL_MAP
 
 
-def create_weighted_loss(dataset_path, device):
+def create_weighted_loss(
+    train_labels,
+    device,
+    class_weight_power=0.5,
+    label_smoothing=0.05,
+):
 
     # ---------------------------------------------------
-    # LOAD COMBINED DATASET
+    # CONVERT LABELS TO NUMERIC VALUES
     # ---------------------------------------------------
 
-    df = pd.read_csv(dataset_path)
+    labels = train_labels.map(
+        LABEL_MAP
+    )
 
-    # Convert class names to numeric labels
-    labels = df["dx"].map(LABEL_MAP)
-
-    # Make sure there are no unmapped labels
     if labels.isna().any():
 
-        unknown_labels = df.loc[
-            labels.isna(),
-            "dx"
-        ].unique()
+        unknown_labels = (
+            train_labels[
+                labels.isna()
+            ]
+            .unique()
+        )
 
         raise ValueError(
-            f"Unmapped labels found: {unknown_labels}"
+            f"Unmapped labels found: "
+            f"{unknown_labels}"
         )
 
     labels = labels.astype(int)
 
+
     # ---------------------------------------------------
-    # CALCULATE CLASS WEIGHTS
+    # CLASS INDICES
     # ---------------------------------------------------
 
     classes = np.array(
-        sorted(LABEL_MAP.values())
+        sorted(
+            LABEL_MAP.values()
+        )
     )
 
-    class_weights = compute_class_weight(
+
+    # ---------------------------------------------------
+    # ORIGINAL BALANCED WEIGHTS
+    # ---------------------------------------------------
+
+    raw_weights = compute_class_weight(
         class_weight="balanced",
         classes=classes,
         y=labels,
     )
+
+
+    # ---------------------------------------------------
+    # TEMPER CLASS WEIGHTS
+    # ---------------------------------------------------
+
+    # Square-root weighting prevents very rare classes
+    # from dominating the optimization.
+
+    class_weights = (
+        raw_weights
+        ** class_weight_power
+    )
+
+
+    # ---------------------------------------------------
+    # NORMALIZE WEIGHTS
+    # ---------------------------------------------------
+
+    class_weights = (
+        class_weights
+        / class_weights.mean()
+    )
+
 
     class_weights = torch.tensor(
         class_weights,
@@ -52,7 +89,14 @@ def create_weighted_loss(dataset_path, device):
         device=device,
     )
 
-    print("\nClass Weights:")
+
+    # ---------------------------------------------------
+    # PRINT WEIGHTS
+    # ---------------------------------------------------
+
+    print(
+        "\nTempered Class Weights:"
+    )
 
     for class_name, class_index in LABEL_MAP.items():
 
@@ -61,12 +105,15 @@ def create_weighted_loss(dataset_path, device):
             f"{class_weights[class_index].item():.4f}"
         )
 
+
     # ---------------------------------------------------
-    # WEIGHTED CROSS-ENTROPY LOSS
+    # LOSS
     # ---------------------------------------------------
 
     criterion = torch.nn.CrossEntropyLoss(
-        weight=class_weights
+        weight=class_weights,
+        label_smoothing=label_smoothing,
     )
+
 
     return criterion

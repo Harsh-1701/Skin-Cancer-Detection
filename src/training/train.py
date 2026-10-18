@@ -2,7 +2,11 @@ import csv
 import torch
 
 from torch.optim import AdamW
-from torch.optim.lr_scheduler import CosineAnnealingLR
+from torch.optim.lr_scheduler import (
+    CosineAnnealingLR,
+    LinearLR,
+    SequentialLR,
+)
 
 from src.models.efficientnet import build_model
 
@@ -18,14 +22,19 @@ from src.training.train_config import (
     DEVICE,
     BATCH_SIZE,
     NUM_EPOCHS,
-    LEARNING_RATE,
+    BACKBONE_LR,
+    CLASSIFIER_LR,
     WEIGHT_DECAY,
+    WARMUP_EPOCHS,
+    MIN_LR,
+    LABEL_SMOOTHING,
+    CLASS_WEIGHT_POWER,
+    GRADIENT_ACCUMULATION_STEPS,
 )
 
 from src.training.trainer import Trainer
 
 from src.utils.config import (
-    COMBINED_DATASET_PATH,
     MODEL_DIR,
     LOG_DIR,
 )
@@ -52,7 +61,7 @@ LOG_DIR.mkdir(
 
 LOG_FILE = (
     LOG_DIR
-    / "training_log_b0_improved.csv"
+    / "training_log_efficientnet_b4.csv"
 )
 
 
@@ -134,26 +143,71 @@ def main():
     # OPTIMIZER
     # ------------------------------------------------
 
+    classifier_parameters = list(
+        model.classifier.parameters()
+    )
+
+    classifier_parameter_ids = {
+        id(parameter)
+        for parameter in classifier_parameters
+    }
+
+    backbone_parameters = [
+        parameter
+        for parameter in model.parameters()
+        if id(parameter) not in classifier_parameter_ids
+    ]
+
     optimizer = AdamW(
 
-        model.parameters(),
-
-        lr=LEARNING_RATE,
+        [
+            {
+                "params": backbone_parameters,
+                "lr": BACKBONE_LR,
+            },
+            {
+                "params": classifier_parameters,
+                "lr": CLASSIFIER_LR,
+            },
+        ],
 
         weight_decay=WEIGHT_DECAY,
     )
 
     # ------------------------------------------------
-    # COSINE LEARNING-RATE SCHEDULER
+    # WARMUP + COSINE LEARNING-RATE SCHEDULER
     # ------------------------------------------------
 
-    scheduler = CosineAnnealingLR(
+    warmup_scheduler = LinearLR(
 
         optimizer,
 
-        T_max=NUM_EPOCHS,
+        start_factor=1 / WARMUP_EPOCHS,
 
-        eta_min=1e-6,
+        end_factor=1.0,
+
+        total_iters=WARMUP_EPOCHS,
+    )
+
+    cosine_scheduler = CosineAnnealingLR(
+
+        optimizer,
+
+        T_max=NUM_EPOCHS - WARMUP_EPOCHS,
+
+        eta_min=MIN_LR,
+    )
+
+    scheduler = SequentialLR(
+
+        optimizer,
+
+        schedulers=[
+            warmup_scheduler,
+            cosine_scheduler,
+        ],
+
+        milestones=[WARMUP_EPOCHS],
     )
 
     # ------------------------------------------------
@@ -162,9 +216,13 @@ def main():
 
     criterion = create_weighted_loss(
 
-        COMBINED_DATASET_PATH,
+        train_loader.dataset.dataframe["dx"],
 
         DEVICE,
+
+        class_weight_power=CLASS_WEIGHT_POWER,
+
+        label_smoothing=LABEL_SMOOTHING,
     )
 
     # ------------------------------------------------
@@ -180,6 +238,10 @@ def main():
         criterion,
 
         DEVICE,
+
+        gradient_accumulation_steps=(
+            GRADIENT_ACCUMULATION_STEPS
+        ),
     )
 
     best_accuracy = 0.0
@@ -199,7 +261,8 @@ def main():
         writer.writerow(
             [
                 "Epoch",
-                "Learning Rate",
+                "Backbone Learning Rate",
+                "Classifier Learning Rate",
                 "Train Loss",
                 "Train Accuracy",
                 "Validation Loss",
@@ -225,8 +288,12 @@ def main():
                 )
             )
 
-            current_lr = (
+            backbone_lr = (
                 optimizer.param_groups[0]["lr"]
+            )
+
+            classifier_lr = (
+                optimizer.param_groups[1]["lr"]
             )
 
             print(
@@ -239,8 +306,13 @@ def main():
             )
 
             print(
-                f"Learning Rate : "
-                f"{current_lr:.8f}"
+                f"Backbone Learning Rate : "
+                f"{backbone_lr:.8f}"
+            )
+
+            print(
+                f"Classifier Learning Rate : "
+                f"{classifier_lr:.8f}"
             )
 
             print(
@@ -270,7 +342,8 @@ def main():
             writer.writerow(
                 [
                     epoch + 1,
-                    current_lr,
+                    backbone_lr,
+                    classifier_lr,
                     train_loss,
                     train_acc,
                     val_loss,
@@ -281,12 +354,18 @@ def main():
             file.flush()
 
             # ----------------------------------------
+            # UPDATE LEARNING RATE
+            # ----------------------------------------
+
+            scheduler.step()
+
+            # ----------------------------------------
             # CHECKPOINT
             # ----------------------------------------
 
             save_checkpoint(
 
-                f"b0_improved_epoch_"
+                f"efficientnet_b4_epoch_"
                 f"{epoch + 1:02d}.pth",
 
                 epoch + 1,
@@ -310,7 +389,7 @@ def main():
 
                 save_checkpoint(
 
-                    "best_model_b0_improved.pth",
+                    "best_model_efficientnet_b4.pth",
 
                     epoch + 1,
 
@@ -324,16 +403,10 @@ def main():
                 )
 
                 print(
-                    f"\nBest improved B0 model saved!"
+                    f"\nBest EfficientNet-B4 model saved!"
                     f" Validation Accuracy: "
                     f"{val_acc:.2f}%"
                 )
-
-            # ----------------------------------------
-            # UPDATE LEARNING RATE
-            # ----------------------------------------
-
-            scheduler.step()
 
     # ------------------------------------------------
     # COMPLETE
@@ -344,7 +417,7 @@ def main():
     )
 
     print(
-        "Improved B0 Training Completed."
+        "EfficientNet-B4 Training Completed."
     )
 
     print(

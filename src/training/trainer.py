@@ -1,5 +1,10 @@
 import torch
-from torch.amp import autocast, GradScaler
+
+from torch.amp import (
+    autocast,
+    GradScaler,
+)
+
 
 class Trainer:
 
@@ -9,6 +14,7 @@ class Trainer:
         optimizer,
         criterion,
         device,
+        gradient_accumulation_steps=1,
     ):
 
         self.model = model.to(device)
@@ -19,9 +25,15 @@ class Trainer:
 
         self.device = device
 
+        self.gradient_accumulation_steps = (
+            gradient_accumulation_steps
+        )
+
         self.scaler = GradScaler(
             "cuda",
-            enabled=(device.type == "cuda"),
+            enabled=(
+                device.type == "cuda"
+            ),
         )
 
 
@@ -31,7 +43,7 @@ class Trainer:
 
     def train_one_epoch(
         self,
-        dataloader
+        dataloader,
     ):
 
         self.model.train()
@@ -42,7 +54,15 @@ class Trainer:
 
         total = 0
 
-        for images, labels in dataloader:
+        self.optimizer.zero_grad(
+            set_to_none=True
+        )
+
+
+        for batch_index, (
+            images,
+            labels
+        ) in enumerate(dataloader):
 
             images = images.to(
                 self.device,
@@ -54,11 +74,6 @@ class Trainer:
                 non_blocking=True,
             )
 
-            # -------------------------------------------
-            # CLEAR GRADIENTS
-            # -------------------------------------------
-
-            self.optimizer.zero_grad()
 
             # -------------------------------------------
             # FORWARD PASS
@@ -66,7 +81,9 @@ class Trainer:
 
             with autocast(
                 device_type=self.device.type,
-                enabled=(self.device.type == "cuda"),
+                enabled=(
+                    self.device.type == "cuda"
+                ),
             ):
 
                 outputs = self.model(
@@ -75,28 +92,73 @@ class Trainer:
 
                 loss = self.criterion(
                     outputs,
-                    labels
+                    labels,
                 )
+
+
+            # -------------------------------------------
+            # SAVE ORIGINAL LOSS
+            # -------------------------------------------
+
+            original_loss = loss.item()
+
+            running_loss += (
+                original_loss
+            )
+
+
+            # -------------------------------------------
+            # GRADIENT ACCUMULATION
+            # -------------------------------------------
+
+            loss = (
+                loss
+                / self.gradient_accumulation_steps
+            )
+
 
             self.scaler.scale(
                 loss
             ).backward()
 
-            self.scaler.step(
-                self.optimizer
+
+            # -------------------------------------------
+            # OPTIMIZER STEP
+            # -------------------------------------------
+
+            should_update = (
+
+                (batch_index + 1)
+                % self.gradient_accumulation_steps
+                == 0
+
+                or
+
+                (batch_index + 1)
+                == len(dataloader)
             )
 
-            self.scaler.update()
+
+            if should_update:
+
+                self.scaler.step(
+                    self.optimizer
+                )
+
+                self.scaler.update()
+
+                self.optimizer.zero_grad(
+                    set_to_none=True
+                )
+
 
             # -------------------------------------------
             # STATISTICS
             # -------------------------------------------
 
-            running_loss += loss.item()
-
             _, predicted = torch.max(
                 outputs,
-                1
+                1,
             )
 
             total += labels.size(0)
@@ -108,16 +170,19 @@ class Trainer:
                 .item()
             )
 
+
         average_loss = (
             running_loss
             / len(dataloader)
         )
+
 
         accuracy = (
             100.0
             * correct
             / total
         )
+
 
         return (
             average_loss,
@@ -132,7 +197,7 @@ class Trainer:
     @torch.no_grad()
     def validate(
         self,
-        dataloader
+        dataloader,
     ):
 
         self.model.eval()
@@ -143,15 +208,19 @@ class Trainer:
 
         total = 0
 
+
         for images, labels in dataloader:
 
             images = images.to(
-                self.device
+                self.device,
+                non_blocking=True,
             )
 
             labels = labels.to(
-                self.device
+                self.device,
+                non_blocking=True,
             )
+
 
             # -------------------------------------------
             # FORWARD PASS
@@ -159,12 +228,15 @@ class Trainer:
 
             with autocast(
                 device_type=self.device.type,
-                enabled=(self.device.type == "cuda"),
+                enabled=(
+                    self.device.type == "cuda"
+                ),
             ):
 
                 outputs = self.model(
                     images
                 )
+
 
             # -------------------------------------------
             # LOSS
@@ -172,10 +244,14 @@ class Trainer:
 
             loss = self.criterion(
                 outputs.float(),
-                labels
+                labels,
             )
 
-            running_loss += loss.item()
+
+            running_loss += (
+                loss.item()
+            )
+
 
             # -------------------------------------------
             # PREDICTIONS
@@ -183,10 +259,12 @@ class Trainer:
 
             _, predicted = torch.max(
                 outputs,
-                1
+                1,
             )
 
+
             total += labels.size(0)
+
 
             correct += (
                 predicted
@@ -195,16 +273,19 @@ class Trainer:
                 .item()
             )
 
+
         average_loss = (
             running_loss
             / len(dataloader)
         )
+
 
         accuracy = (
             100.0
             * correct
             / total
         )
+
 
         return (
             average_loss,
