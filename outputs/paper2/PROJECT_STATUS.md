@@ -54,8 +54,8 @@ EfficientNet-B4:
 - `figure_top20_error_precision.png`
 
 ## Next tasks
-1. Check the exact score definitions and figure labels against the evaluation code.
-2. Investigate potential patient/lesion overlap where metadata permits.
-3. Regenerate final comparison tables from the corrected metrics.
-4. Draft the Results and Discussion with explicit limitations.
-5. Review all claims before treating the manuscript as submission-ready.
+1. Audit figure labels, score definitions, and risk-coverage calculations.
+2. Investigate patient/lesion overlap if suitable metadata becomes available.
+3. Draft the abstract, introduction, and related work using verified references.
+4. Assemble the manuscript and add figure captions and citations.
+5. Conduct a final scientific and formatting review before submission.
