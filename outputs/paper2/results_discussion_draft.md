@@ -18,7 +18,7 @@ These results indicate that the usefulness of disagreement differed between the 
 
 ### 4.3 Detection among the highest-risk predictions
 
-The top 20% of test predictions were flagged as potentially erroneous for each detection method. Because the test set contained 3,921 images, approximately 20% of predictions were flagged in each analysis.
+For each detection method, the 785 test predictions with the highest error scores were flagged as potentially erroneous. This corresponds to 20.02% of the 3,921-image test set, reflecting the use of the ceiling of 20% of the test-set size.
 
 For EfficientNet-B0, confidence-only detection achieved a flagged-error precision of 28.9%, recall of 76.7%, and F1 score of 0.4200. Disagreement-only detection achieved a precision of 22.8%, recall of 60.5%, and F1 score of 0.3312. The combined signal achieved a precision of 29.9%, recall of 79.4%, and F1 score of 0.4348.
 
@@ -36,6 +36,15 @@ Thus, for EfficientNet-B4, the disagreement-based and combined approaches identi
 | B4 | Confidence only | 0.8174 | 0.4957 | 0.4892 | 0.5175 | 0.5029 |
 | B4 | Disagreement only | 0.8995 | 0.7198 | 0.7962 | 0.8423 | 0.8186 |
 | B4 | Combined | 0.9416 | 0.8115 | 0.8013 | 0.8477 | 0.8238 |
+
+### 4.5 Paired bootstrap comparisons
+
+Paired bootstrap comparisons were performed using 2,000 resamples of the test images to estimate 95% confidence intervals for differences between error-detection methods. For EfficientNet-B0, the combined method improved AUROC over confidence-only detection by 0.0078 (95% CI 0.0019 to 0.0142) and AUPRC by 0.0377 (95% CI 0.0215 to 0.0547). However, the paired confidence intervals for top-20% precision, recall, and F1 included zero, leaving the direction of these differences uncertain.
+
+For EfficientNet-B4, the combined method improved AUROC by 0.1242 (95% CI 0.1115 to 0.1381) and AUPRC by 0.3158 (95% CI 0.2843 to 0.3488) relative to confidence-only detection. The paired confidence intervals for top-20% precision, recall, and F1 also excluded zero and favored the combined method.
+
+These results indicate that the observed benefit of combining confidence and disagreement was model-dependent and substantially larger for EfficientNet-B4. The intervals are based on image-level resampling within a single test split. They do not account for possible patient- or lesion-level clustering and should not be interpreted as evidence of patient-independent generalization.
+
 
 ## 5. Discussion
 
@@ -73,7 +82,7 @@ Finally, the two models may differ in architecture, preprocessing, learned repre
 
 ### 5.4 Future work
 
-Future work should investigate patient- or lesion-level grouping where suitable identifiers are available, assess overlap among differently named images, and evaluate the method on an independent external dataset. Confidence intervals and appropriate statistical comparisons should be added to quantify uncertainty in the observed differences. Additional analyses should examine performance across diagnostic classes and across different flagging thresholds.
+Future work should investigate patient- or lesion-level grouping where suitable identifiers are available, assess overlap among differently named images, and evaluate the method on an independent external dataset. Further analyses should examine performance across diagnostic classes, alternative flagging thresholds, and different train-validation-test splits. Bootstrap uncertainty estimates should also be extended to account for patient- or lesion-level clustering when appropriate identifiers become available.
 
 Further experiments could also compare the current combined score with alternative disagreement measures and evaluate whether validation-selected weights remain stable across splits. Such analyses would help determine whether the observed improvement for EfficientNet-B4 is robust or specific to the current evaluation setup.
 
@@ -81,13 +90,4 @@ Further experiments could also compare the current combined score with alternati
 
 In this filename-deduplicated evaluation, disagreement between EfficientNet-B0 and EfficientNet-B4 provided substantially different benefits for the two model-specific error detection tasks. For EfficientNet-B4, disagreement improved error detection over confidence alone, and the combined signal achieved the strongest observed performance. For EfficientNet-B0, the combined signal provided a smaller improvement, while disagreement alone performed worse than confidence alone.
 
-These findings support further investigation of disagreement-aware error detection as a model-dependent approach. Conclusions about generalization and clinical relevance must await stronger evidence of patient- or lesion-level independence, uncertainty estimates, and external validation.
-
-
-### Paired bootstrap comparisons
-
-Paired bootstrap comparisons were performed using 2,000 resamples of the test images to estimate 95% confidence intervals for differences between error-detection methods. For EfficientNet-B0, the combined method improved AUROC over confidence-only detection by 0.0078 (95% CI 0.0019 to 0.0142) and AUPRC by 0.0377 (95% CI 0.0215 to 0.0547). However, the paired confidence intervals for top-20% precision, recall, and F1 included zero, leaving the direction of these differences uncertain.
-
-For EfficientNet-B4, the combined method improved AUROC by 0.1242 (95% CI 0.1115 to 0.1381) and AUPRC by 0.3158 (95% CI 0.2843 to 0.3488) relative to confidence-only detection. The paired confidence intervals for top-20% precision, recall, and F1 also excluded zero and favored the combined method.
-
-These results indicate that the observed benefit of combining confidence and disagreement was model-dependent and substantially larger for EfficientNet-B4. The intervals are based on image-level resampling within a single test split. They do not account for possible patient- or lesion-level clustering and should not be interpreted as evidence of patient-independent generalization.
+These findings support further investigation of disagreement-aware error detection as a model-dependent approach. Stronger conclusions about generalization and clinical relevance require evaluation with patient- or lesion-level independence, uncertainty estimates that account for relevant clustering, and external validation.
