@@ -65,7 +65,7 @@ First, deduplication was performed using image filenames. This removed repeated 
 
 Second, 197 filenames with conflicting labels between HAM10000 and ISIC2019 were excluded from the evaluation manifest. The underlying discrepancies were not resolved, and excluding these cases may affect the class distribution and representativeness of the resulting dataset.
 
-Third, the evaluation used a single deterministic train-validation-test split. Performance may vary across different splits or external datasets. Confidence intervals and statistical comparisons have not yet been calculated, so the observed differences should not be described as statistically significant.
+Third, the evaluation used a single deterministic train-validation-test split. Performance may vary across different splits or external datasets. Image-level bootstrap confidence intervals and paired bootstrap comparisons were calculated using 2,000 resamples of the test images. These estimates do not account for possible patient- or lesion-level clustering, and they do not establish external validity. The paired comparisons support improvements in AUROC and AUPRC for the combined method for EfficientNet-B0, while the paired intervals for its top-20% precision, recall, and F1 include zero. For EfficientNet-B4, the paired intervals favor the combined method across all five evaluated metrics.
 
 Fourth, the evaluation concerns detection of incorrect model predictions, not diagnosis accuracy in clinical practice. High error detection performance does not establish clinical benefit, safety, improved patient outcomes, or suitability for autonomous decision-making.
 
