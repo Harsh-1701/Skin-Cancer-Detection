@@ -79,9 +79,23 @@ def make_eval_transform(image_size):
         ToTensorV2(),
     ])
 
+
 def create_paper2_loaders(batch_size, transform):
-    """Reproduces the project's existing deterministic stratified split."""
-    df = pd.read_csv(COMBINED_DATASET_PATH)
+    """Create deterministic, leakage-resistant splits from unique image names."""
+    from pathlib import Path
+
+    manifest_path = Path("outputs/paper2/deduplicated_dataset_manifest.csv")
+    split_path = Path("outputs/paper2/split_manifest_deduplicated.csv")
+
+    if not manifest_path.is_file():
+        raise FileNotFoundError(
+            f"Deduplicated manifest not found: {manifest_path}"
+        )
+
+    df = pd.read_csv(manifest_path)
+
+    if df["image_name"].duplicated().any():
+        raise ValueError("Duplicate image names remain in the evaluation manifest.")
 
     train_df, temp_df = train_test_split(
         df,
@@ -97,12 +111,29 @@ def create_paper2_loaders(batch_size, transform):
         stratify=temp_df["dx"],
     )
 
+    train_df = train_df.copy()
+    val_df = val_df.copy()
+    test_df = test_df.copy()
+
+    train_df["split"] = "train"
+    val_df["split"] = "validation"
+    test_df["split"] = "test"
+
+    split_manifest = pd.concat(
+        [train_df, val_df, test_df], ignore_index=True
+    )
+    split_manifest.to_csv(split_path, index=False)
+
+    # Verify that all split assignments are unique and exhaustive.
+    assert split_manifest["image_name"].is_unique
+    assert len(split_manifest) == len(df)
+
     image_index = SkinCancerDataset._build_image_index()
 
     loaders = {}
     for name, frame in (("val", val_df), ("test", test_df)):
         base = SkinCancerDataset(
-            frame,
+            frame.drop(columns=["split"], errors="ignore"),
             transform=transform,
             image_index=image_index,
         )
@@ -117,9 +148,11 @@ def create_paper2_loaders(batch_size, transform):
         )
 
     print(
-        f"Split sizes: train={len(train_df)}, "
+        f"Deduplicated split sizes: train={len(train_df)}, "
         f"validation={len(val_df)}, test={len(test_df)}"
     )
+    print(f"Saved split manifest: {split_path}")
+
     return loaders
 
 
