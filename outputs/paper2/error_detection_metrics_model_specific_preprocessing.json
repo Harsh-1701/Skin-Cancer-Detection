@@ -1,97 +1,97 @@
 {
   "validation_tuning": {
     "B0": {
-      "alpha": 0.78,
-      "validation_AUROC": 0.8712358549874266,
-      "validation_AUPRC": 0.4874686994560916
+      "alpha": 0.92,
+      "validation_AUROC": 0.9083354144740363,
+      "validation_AUPRC": 0.41059702693064687
     },
     "B4": {
-      "alpha": 0.5700000000000001,
-      "validation_AUROC": 0.9129832561496027,
-      "validation_AUPRC": 0.7482034954491203
+      "alpha": 0.55,
+      "validation_AUROC": 0.95287308454309,
+      "validation_AUPRC": 0.8711714072690692
     }
   },
   "test_metrics": {
     "B0": {
       "confidence_only": {
-        "n_samples": 5452,
-        "errors": 707,
-        "error_rate": 0.1296771826852531,
-        "AUROC": 0.8469853623929307,
-        "AUPRC": 0.42892033948796116,
-        "flagged_fraction": 0.20011005135730006,
-        "flagged_error_precision": 0.383134738771769,
-        "flagged_error_recall": 0.5912305516265912,
-        "flagged_error_f1": 0.4649610678531702,
-        "error_rate_among_flagged": 0.383134738771769,
-        "error_rate_among_unflagged": 0.06626920431093786
+        "n_samples": 3921,
+        "errors": 296,
+        "error_rate": 0.07549094618719715,
+        "AUROC": 0.8856663560111837,
+        "AUPRC": 0.4221806002402917,
+        "flagged_fraction": 0.20020402958428973,
+        "flagged_error_precision": 0.289171974522293,
+        "flagged_error_recall": 0.7668918918918919,
+        "flagged_error_f1": 0.4199814986123959,
+        "error_rate_among_flagged": 0.289171974522293,
+        "error_rate_among_unflagged": 0.022002551020408163
       },
       "disagreement_only": {
-        "n_samples": 5452,
-        "errors": 707,
-        "error_rate": 0.1296771826852531,
-        "AUROC": 0.7153548065931086,
-        "AUPRC": 0.2716575687840197,
-        "flagged_fraction": 0.20011005135730006,
-        "flagged_error_precision": 0.3703024747937672,
-        "flagged_error_recall": 0.5714285714285714,
-        "flagged_error_f1": 0.44938820912124583,
-        "error_rate_among_flagged": 0.3703024747937672,
-        "error_rate_among_unflagged": 0.06947947718413208
+        "n_samples": 3921,
+        "errors": 296,
+        "error_rate": 0.07549094618719715,
+        "AUROC": 0.7218131407269338,
+        "AUPRC": 0.17170907981065706,
+        "flagged_fraction": 0.20020402958428973,
+        "flagged_error_precision": 0.22802547770700637,
+        "flagged_error_recall": 0.6047297297297297,
+        "flagged_error_f1": 0.33117483811285847,
+        "error_rate_among_flagged": 0.22802547770700637,
+        "error_rate_among_unflagged": 0.03730867346938776
       },
       "combined": {
-        "n_samples": 5452,
-        "errors": 707,
-        "error_rate": 0.1296771826852531,
-        "AUROC": 0.8657213802066643,
-        "AUPRC": 0.47686141183067027,
-        "flagged_fraction": 0.20011005135730006,
-        "flagged_error_precision": 0.4381301558203483,
-        "flagged_error_recall": 0.6760961810466761,
-        "flagged_error_f1": 0.5317018909899889,
-        "error_rate_among_flagged": 0.4381301558203483,
-        "error_rate_among_unflagged": 0.052510891997248337
+        "n_samples": 3921,
+        "errors": 296,
+        "error_rate": 0.07549094618719715,
+        "AUROC": 0.8934221808014913,
+        "AUPRC": 0.45990745849970754,
+        "flagged_fraction": 0.20020402958428973,
+        "flagged_error_precision": 0.29936305732484075,
+        "flagged_error_recall": 0.793918918918919,
+        "flagged_error_f1": 0.43478260869565216,
+        "error_rate_among_flagged": 0.29936305732484075,
+        "error_rate_among_unflagged": 0.0194515306122449
       }
     },
     "B4": {
       "confidence_only": {
-        "n_samples": 5452,
-        "errors": 1119,
-        "error_rate": 0.20524578136463684,
-        "AUROC": 0.8187890097547204,
-        "AUPRC": 0.5107897251740934,
-        "flagged_fraction": 0.20011005135730006,
-        "flagged_error_precision": 0.5224564619615032,
-        "flagged_error_recall": 0.5093833780160858,
-        "flagged_error_f1": 0.5158371040723982,
-        "error_rate_among_flagged": 0.5224564619615032,
-        "error_rate_among_unflagged": 0.1258885576702591
+        "n_samples": 3921,
+        "errors": 742,
+        "error_rate": 0.18923743942871715,
+        "AUROC": 0.8174055819482471,
+        "AUPRC": 0.4957200083293951,
+        "flagged_fraction": 0.20020402958428973,
+        "flagged_error_precision": 0.489171974522293,
+        "flagged_error_recall": 0.5175202156334232,
+        "flagged_error_f1": 0.5029469548133595,
+        "error_rate_among_flagged": 0.489171974522293,
+        "error_rate_among_unflagged": 0.11415816326530612
       },
       "disagreement_only": {
-        "n_samples": 5452,
-        "errors": 1119,
-        "error_rate": 0.20524578136463684,
-        "AUROC": 0.8354314530690854,
-        "AUPRC": 0.6136428365292251,
-        "flagged_fraction": 0.20011005135730006,
-        "flagged_error_precision": 0.7479376718606783,
-        "flagged_error_recall": 0.7292225201072386,
-        "flagged_error_f1": 0.7384615384615385,
-        "error_rate_among_flagged": 0.7479376718606783,
-        "error_rate_among_unflagged": 0.06947947718413208
+        "n_samples": 3921,
+        "errors": 742,
+        "error_rate": 0.18923743942871715,
+        "AUROC": 0.8994540909896397,
+        "AUPRC": 0.7198115246866374,
+        "flagged_fraction": 0.20020402958428973,
+        "flagged_error_precision": 0.7961783439490446,
+        "flagged_error_recall": 0.8423180592991913,
+        "flagged_error_f1": 0.8185985592665357,
+        "error_rate_among_flagged": 0.7961783439490446,
+        "error_rate_among_unflagged": 0.03730867346938776
       },
       "combined": {
-        "n_samples": 5452,
-        "errors": 1119,
-        "error_rate": 0.20524578136463684,
-        "AUROC": 0.9096739138729376,
-        "AUPRC": 0.7476561643281793,
-        "flagged_fraction": 0.20011005135730006,
-        "flagged_error_precision": 0.7561869844179652,
-        "flagged_error_recall": 0.7372654155495979,
-        "flagged_error_f1": 0.746606334841629,
-        "error_rate_among_flagged": 0.7561869844179652,
-        "error_rate_among_unflagged": 0.06741573033707865
+        "n_samples": 3921,
+        "errors": 742,
+        "error_rate": 0.18923743942871715,
+        "AUROC": 0.9416406861402618,
+        "AUPRC": 0.8115496888613726,
+        "flagged_fraction": 0.20020402958428973,
+        "flagged_error_precision": 0.8012738853503185,
+        "flagged_error_recall": 0.8477088948787062,
+        "flagged_error_f1": 0.8238375900458416,
+        "error_rate_among_flagged": 0.8012738853503185,
+        "error_rate_among_unflagged": 0.036033163265306124
       }
     }
   },
