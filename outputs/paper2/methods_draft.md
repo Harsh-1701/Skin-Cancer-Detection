@@ -1,28 +1,58 @@
-﻿# Methods Draft
+﻿# Methods
 
-## Study objective
-This study evaluates whether disagreement between EfficientNet-B0 and EfficientNet-B4 helps identify incorrect skin-lesion classification predictions beyond confidence-based error detection.
+## 1. Study objective
 
-## Dataset and preprocessing
-The original combined dataset contained 36,346 rows. Duplicate image filenames were identified across sources. A total of 197 filenames had conflicting labels (`akiec` in HAM10000 and `scc` in ISIC2019); these filenames were excluded from the evaluation manifest rather than assigning an arbitrary label. The resulting manifest contained 26,134 unique image filenames across nine classes.
+This study evaluated whether disagreement between EfficientNet-B0 and EfficientNet-B4 improves the detection of incorrect skin-lesion classification predictions beyond confidence-based error detection.
 
-EfficientNet-B0 and EfficientNet-B4 were evaluated using model-specific input preprocessing at 224 × 224 and 380 × 380 pixels, respectively.
+## 2. Dataset and preprocessing
 
-## Data splitting
-The deduplicated manifest was divided into training (70%), validation (15%), and test (15%) subsets using two-stage stratified splitting by diagnosis, with a fixed random seed. The resulting split contained 18,293 training, 3,920 validation, and 3,921 test images. The split assignments were saved in `split_manifest_deduplicated.csv`. Both models were evaluated using the same split assignments.
+The original combined dataset contained 36,346 rows. Duplicate image filenames occurred across data sources. A total of 197 filenames had conflicting diagnosis labels, recorded as `akiec` in HAM10000 and `scc` in ISIC2019. These filenames were excluded rather than assigning an arbitrary label.
 
-This procedure prevents the same filename from appearing in multiple splits. Patient-level or lesion-level independence was not established, and overlap between differently named images has not been ruled out.
+The resulting evaluation manifest contained 26,134 unique image filenames across nine diagnostic classes. The manifest was used to construct the training, validation, and test splits.
 
-## Error detection
-Incorrect classification was treated as the target event for error detection. Confidence-based, disagreement-based, and combined signals were compared. The combination weight was selected on the validation set using AUROC, with AUPRC used as a tie-breaker. The selected weights were 0.92 for EfficientNet-B0 and 0.55 for EfficientNet-B4. Test results were calculated after validation-based selection.
+Model-specific deterministic evaluation preprocessing was applied. EfficientNet-B0 used an input size of 224 × 224 pixels, while EfficientNet-B4 used 380 × 380 pixels. The evaluation transforms included normalization and tensor conversion. Both models were evaluated on the same split assignments, using their respective input sizes.
 
-Performance was evaluated using AUROC, AUPRC, and precision, recall, and F1 among the top 20% of test cases flagged as potentially erroneous. These results describe error detection on this test split and should not be interpreted as evidence of clinical utility.
+## 3. Data splitting
 
-## Preliminary results
-On the 3,921-image test set, EfficientNet-B0 had 296 incorrect predictions (7.55%), while EfficientNet-B4 had 742 (18.92%).
+The deduplicated manifest was divided into training, validation, and test subsets using two-stage stratified splitting by diagnosis, with a fixed random seed of 42. The resulting split contained 18,293 training images, 3,920 validation images, and 3,921 test images.
 
-For EfficientNet-B0, the combined signal achieved AUROC 0.8934 and AUPRC 0.4599, compared with AUROC 0.8857 and AUPRC 0.4222 for confidence alone. At the top-20% flagging threshold, combined-signal precision was 29.9% and recall was 79.4%.
+Split assignments were saved in `split_manifest_deduplicated.csv`. Filename-level deduplication prevented identical filenames from appearing in multiple splits. However, patient-level and lesion-level independence were not established, and overlap among differently named images has not been ruled out.
 
-For EfficientNet-B4, the combined signal achieved AUROC 0.9416 and AUPRC 0.8115, compared with AUROC 0.8174 and AUPRC 0.4957 for confidence alone. At the top-20% flagging threshold, combined-signal precision was 80.1% and recall was 84.8%. The disagreement-only signal also performed strongly for EfficientNet-B4, with AUROC 0.8995 and AUPRC 0.7198.
+## 4. Error-detection methods
 
-These findings are preliminary. Patient-level independence, possible overlap among differently named images, and the provenance and representativeness of all data sources require careful consideration before drawing broader conclusions.
+An incorrect classification was defined as an error event. Three error-detection signals were compared for each target model:
+
+1. **Confidence-only:** the model's classification uncertainty, calculated as one minus its predicted confidence.
+2. **Disagreement-only:** a binary indicator equal to one when EfficientNet-B0 and EfficientNet-B4 predicted different classes, and zero otherwise.
+3. **Combined:** a weighted combination of classification uncertainty and model disagreement.
+
+The combined error score was defined as:
+
+\[
+s_{\mathrm{combined}} =
+\alpha(1-c) + (1-\alpha)d
+\]
+
+where \(c\) is the target model's predicted confidence, \(d\) is the binary disagreement indicator, and \(\alpha\) is the combination weight. Higher scores indicate greater estimated risk of an incorrect prediction.
+
+The combination weight was selected separately for each target model using the validation set. Candidate weights were evaluated on a grid from 0 to 1 in increments of 0.01. AUROC was the primary selection criterion, with AUPRC used to break ties. The selected weights were 0.92 for EfficientNet-B0 and 0.55 for EfficientNet-B4. The test set was not used to select these weights.
+
+## 5. Evaluation metrics
+
+Error-detection performance was assessed using the area under the receiver operating characteristic curve (AUROC), the area under the precision-recall curve (AUPRC), and precision, recall, and F1 score among the highest-risk predictions.
+
+For each method, the top 20% of test cases ranked by error score were flagged as potentially erroneous. The number flagged was defined as the ceiling of 20% of the test-set size. For 3,921 test images, this resulted in 785 flagged cases per method.
+
+Flagged-error precision measured the proportion of flagged cases that were incorrect. Recall measured the proportion of all incorrect predictions captured among the flagged cases. F1 was calculated as the harmonic mean of precision and recall. Error rates among flagged and unflagged cases were also recorded.
+
+## 6. Uncertainty estimation and paired comparisons
+
+Image-level bootstrap resampling was used to estimate 95% percentile confidence intervals for error-detection metrics. The bootstrap procedure requested 2,000 resamples and used random seed 42. Resampling was performed over test rows and therefore did not account for possible clustering of images by patient or lesion.
+
+Paired bootstrap comparisons were conducted to estimate confidence intervals for differences between error-detection methods. The same resampled test rows were used to compare methods within each replicate. The paired comparison procedure used 2,000 bootstrap replicates and random seed 123. Differences were defined as the metric for the first method minus the metric for the comparison method; positive differences favored the first method.
+
+These uncertainty estimates characterize performance on the evaluated test split. They do not establish patient- or lesion-independent generalization or external validity.
+
+## 7. Scope of evaluation
+
+The evaluation focused on identifying incorrect model predictions rather than assessing diagnostic performance in clinical practice. The results do not by themselves establish clinical utility, safety, improved patient outcomes, or suitability for autonomous decision-making. External validation and evaluation with appropriate patient- or lesion-level grouping remain necessary to assess generalizability.
