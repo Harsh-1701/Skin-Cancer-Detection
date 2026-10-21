@@ -1,0 +1,7 @@
+Model,Method,AUROC,AUPRC,Top-20% error precision,Top-20% error recall,Top-20% error F1,Change vs confidence-only: AUROC,Change vs confidence-only: AUPRC,Change vs confidence-only: Top-20% error precision,Change vs confidence-only: Top-20% error recall,Change vs confidence-only: Top-20% error F1
+B0,confidence_only,0.846985,0.428920,0.383135,0.591231,0.464961,,,,,
+B0,disagreement_only,0.715355,0.271658,0.370302,0.571429,0.449388,,,,,
+B0,combined,0.865721,0.476861,0.438130,0.676096,0.531702,0.018736,0.047941,0.054995,0.084865,0.066741
+B4,confidence_only,0.818789,0.510790,0.522456,0.509383,0.515837,,,,,
+B4,disagreement_only,0.835431,0.613643,0.747938,0.729223,0.738462,,,,,
+B4,combined,0.909674,0.747656,0.756187,0.737265,0.746606,0.090885,0.236866,0.233731,0.227882,0.230769

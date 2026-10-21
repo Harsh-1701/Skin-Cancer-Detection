@@ -1,0 +1,105 @@
+{
+  "validation_tuning": {
+    "B0": {
+      "alpha": 0.78,
+      "validation_AUROC": 0.8712358549874266,
+      "validation_AUPRC": 0.4874686994560916
+    },
+    "B4": {
+      "alpha": 0.5700000000000001,
+      "validation_AUROC": 0.9129832561496027,
+      "validation_AUPRC": 0.7482034954491203
+    }
+  },
+  "test_metrics": {
+    "B0": {
+      "confidence_only": {
+        "n_samples": 5452,
+        "errors": 707,
+        "error_rate": 0.1296771826852531,
+        "AUROC": 0.8469853623929307,
+        "AUPRC": 0.42892033948796116,
+        "flagged_fraction": 0.20011005135730006,
+        "flagged_error_precision": 0.383134738771769,
+        "flagged_error_recall": 0.5912305516265912,
+        "flagged_error_f1": 0.4649610678531702,
+        "error_rate_among_flagged": 0.383134738771769,
+        "error_rate_among_unflagged": 0.06626920431093786
+      },
+      "disagreement_only": {
+        "n_samples": 5452,
+        "errors": 707,
+        "error_rate": 0.1296771826852531,
+        "AUROC": 0.7153548065931086,
+        "AUPRC": 0.2716575687840197,
+        "flagged_fraction": 0.20011005135730006,
+        "flagged_error_precision": 0.3703024747937672,
+        "flagged_error_recall": 0.5714285714285714,
+        "flagged_error_f1": 0.44938820912124583,
+        "error_rate_among_flagged": 0.3703024747937672,
+        "error_rate_among_unflagged": 0.06947947718413208
+      },
+      "combined": {
+        "n_samples": 5452,
+        "errors": 707,
+        "error_rate": 0.1296771826852531,
+        "AUROC": 0.8657213802066643,
+        "AUPRC": 0.47686141183067027,
+        "flagged_fraction": 0.20011005135730006,
+        "flagged_error_precision": 0.4381301558203483,
+        "flagged_error_recall": 0.6760961810466761,
+        "flagged_error_f1": 0.5317018909899889,
+        "error_rate_among_flagged": 0.4381301558203483,
+        "error_rate_among_unflagged": 0.052510891997248337
+      }
+    },
+    "B4": {
+      "confidence_only": {
+        "n_samples": 5452,
+        "errors": 1119,
+        "error_rate": 0.20524578136463684,
+        "AUROC": 0.8187890097547204,
+        "AUPRC": 0.5107897251740934,
+        "flagged_fraction": 0.20011005135730006,
+        "flagged_error_precision": 0.5224564619615032,
+        "flagged_error_recall": 0.5093833780160858,
+        "flagged_error_f1": 0.5158371040723982,
+        "error_rate_among_flagged": 0.5224564619615032,
+        "error_rate_among_unflagged": 0.1258885576702591
+      },
+      "disagreement_only": {
+        "n_samples": 5452,
+        "errors": 1119,
+        "error_rate": 0.20524578136463684,
+        "AUROC": 0.8354314530690854,
+        "AUPRC": 0.6136428365292251,
+        "flagged_fraction": 0.20011005135730006,
+        "flagged_error_precision": 0.7479376718606783,
+        "flagged_error_recall": 0.7292225201072386,
+        "flagged_error_f1": 0.7384615384615385,
+        "error_rate_among_flagged": 0.7479376718606783,
+        "error_rate_among_unflagged": 0.06947947718413208
+      },
+      "combined": {
+        "n_samples": 5452,
+        "errors": 1119,
+        "error_rate": 0.20524578136463684,
+        "AUROC": 0.9096739138729376,
+        "AUPRC": 0.7476561643281793,
+        "flagged_fraction": 0.20011005135730006,
+        "flagged_error_precision": 0.7561869844179652,
+        "flagged_error_recall": 0.7372654155495979,
+        "flagged_error_f1": 0.746606334841629,
+        "error_rate_among_flagged": 0.7561869844179652,
+        "error_rate_among_unflagged": 0.06741573033707865
+      }
+    }
+  },
+  "evaluation_notes": [
+    "Combination weights selected using validation AUROC.",
+    "Test set used only for final evaluation.",
+    "The current split is row-stratified; patient/lesion independence is not established.",
+    "B0 evaluation uses 224x224 preprocessing and B4 evaluation uses 380x380 preprocessing, both with A.Normalize() and ToTensorV2().",
+    "Sample IDs combine source and filename; they do not establish patient-level independence."
+  ]
+}
